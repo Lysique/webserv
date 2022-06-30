@@ -12,8 +12,7 @@
 
 NAME = webserv
 CC = c++
-FLAGS = 
-# -Wall -Werror -Wextra  -pedantic  -std=c++98
+FLAGS = -Wall -Werror -Wextra -std=c++98
 OBJ_DIR = objs/
 RM = rm -rf
 
