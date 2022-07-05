@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 11:34:14 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 13:35:51 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,43 +18,48 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include "../config/ParserConfig.hpp"
 #include "../Respon/ResHandler.hpp"
+#include "../request/ParserRequest.hpp"
 
 #define MAX_CONNECTIONS 65535 
 #define DATA_BUFFER 800000
 
-class ConnectionErr : public std::exception
-{
-	const char * what () const throw () { return ("Read error occurred while receiving on the socket, closing connection"); }
-};
 class Server
 {
-	public:
-		Server(std::vector<ServerMembers> &a);
-		// Server(int eport);
-		int autoindx[65535];		
-		~Server(void);
-		// void	setPort(int p);
-		// void	creat(void);
-		int	run(std::string FileConf);
-		int getNbPort(void);
-		void setNbPort(int n);
-		int create_server(int iport, std::string host);
-		int read_connection(int socket);
-	private:
-		std::vector<ServerMembers> servers;
-		
-		int					fd[MAX_CONNECTIONS];
-		int					efd;
-		// int					sockfd;
-		int					NbPort;
-		struct sockaddr_in	new_addr;
 
-		std::string buffu;
+public:
+	Server(std::vector<ServerMembers> &a);
+	~Server(void);
+
+	int	run(std::string FileConf);
+	int read_connection(int socket);
+
+private:
+	int create_server(int iport, std::string host);
+
+
+	std::vector<ServerMembers> servers;
+	
+	int					fd[MAX_CONNECTIONS];
+	int					efd;
+
+	int					NbPort;
+	struct sockaddr_in	new_addr;
+
+	std::string buffu;
+
+	class ServerCreateError : public std::exception
+	{
+		const char * what () const throw ()
+		{ 
+			return ("An error occured while creating the server.");
+		}
+	};
 };
 
 #endif

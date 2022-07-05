@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/05 11:35:33 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 12:15:25 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 13:41:40 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,6 @@ void ResHandler::Methodes(std::string FileConf)
 	ParserConfig cf(FileConf);
 	MainServer.ConfigName = FileConf;
 	std::vector<ServerMembers> servers = cf.getConfig();
-	Server serv(servers);
 	std::vector<ServerMembers>::iterator it = cf.getConfig().begin();
 	std::vector<ServerMembers>::iterator ss = cf.getConfig().begin();
 	std::vector<ServerMembers>::iterator xx = cf.getConfig().end();
@@ -44,6 +43,8 @@ void ResHandler::Methodes(std::string FileConf)
 	int num;
 	bool yes;
 	std::map<int, int> portfind;
+
+
 	for (int pl = 1; ss != xx; ++ss, ++pl, jn++)
 		portfind.insert(std::make_pair(ss->port, jn));
 	std::vector<LocationMembers>::iterator locItos = it->locations.begin();

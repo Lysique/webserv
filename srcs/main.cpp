@@ -6,18 +6,20 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:57:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 11:23:46 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 13:30:53 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 
 #include "server/Server.hpp"
 #include "config/ParserConfig.hpp"
 
-int main(int b , char **argv)
+int main(int argc, char **argv)
 {
-	if(b ==2)
+	if(argc != 2)
 	{
+		std::cout << "usage: " << argv[0] << " <config file>" << std::endl;
+		return (1);
+	}
     try 
     {
         ParserConfig    cf(argv[1]);
@@ -32,6 +34,5 @@ int main(int b , char **argv)
     {
         std::cout << e.what() << std::endl;
     }
-	}
-	return 0;
+	return (0);
 }

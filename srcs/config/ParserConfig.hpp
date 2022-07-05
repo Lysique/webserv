@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/03 14:28:49 by tamighi           #+#    #+#             */
-/*   Updated: 2022/06/27 13:55:11 by fejjed           ###   ########.fr       */
+/*   Updated: 2022/07/05 12:35:27 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,6 @@ class ParserConfig
 public:
 	//	Public member functions
 	ParserConfig(const std::string& file_name);
-	int autoindx[65535];
 	~ParserConfig(void);
 
 	std::vector<ServerMembers>&	getConfig(void);
@@ -93,7 +92,7 @@ private:
 	//	Secondary parse functions
 	void	endScope(void);
 
-	//	Shared functions for server and localisation
+	//	Shared functions for server and location
 	void	addRoot(std::stringstream& ss, ConfigMembers& cm);
 	void	addMaxBodySize(std::stringstream& ss, ConfigMembers& cm);
 	void	addErrorPages(std::stringstream& ss, ConfigMembers& cm);
