@@ -6,16 +6,16 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:25:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/06/29 11:38:33 by fejjed           ###   ########.fr       */
+/*   Updated: 2022/07/05 11:28:06 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
-#include "request/ParserRequest.hpp"
+#include "../request/ParserRequest.hpp"
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "config/ParserConfig.hpp"
+#include "../config/ParserConfig.hpp"
 
 #define MAX_CONNECTIONS 65535 
 

@@ -6,14 +6,13 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:57:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/06/27 15:04:06 by fejjed           ###   ########.fr       */
+/*   Updated: 2022/07/05 11:23:46 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 
-#include "Server.hpp"
+#include "server/Server.hpp"
 #include "config/ParserConfig.hpp"
-#include "request/ParserRequest.hpp"
 
 int main(int b , char **argv)
 {

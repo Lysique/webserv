@@ -3,7 +3,7 @@
 #include "../config/ParserConfig.hpp"
 #include "../request/ParserRequest.hpp"
 #include "../utils/cgi.hpp"
-#include "../Server.hpp"
+#include "../server/Server.hpp"
 #include <fstream>
 #include <sys/types.h>
 #include <sys/stat.h>

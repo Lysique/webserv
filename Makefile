@@ -6,7 +6,7 @@
 #    By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/05/06 10:37:35 by tamighi           #+#    #+#              #
-#    Updated: 2022/06/29 10:49:19 by fejjed           ###   ########.fr        #
+#    Updated: 2022/07/05 11:27:36 by tamighi          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,21 +16,35 @@ FLAGS = -Wall -Werror -Wextra -std=c++98
 OBJ_DIR = objs/
 RM = rm -rf
 
-OBJS =  $(SRCS_OBJS) $(CONFIG_OBJS)  $(REQUEST_OBJS)  $(RESPON_OBJS) $(UTILS_OBJS)  
+OBJS =  $(SRCS_OBJS) $(CONFIG_OBJS)  $(REQUEST_OBJS)  $(RESPON_OBJS) $(UTILS_OBJS) $(SERVER_OBJS)
 
 #### FILES
 
 #### SRCS FILES
 
 SRCS_DIR = srcs/
-SRCS_FILES = main.cpp Server.cpp
-SRCS_HEADERS = Server.hpp
+SRCS_FILES = main.cpp 
+SRCS_HEADERS = 
 
 SRCS_SRCS = $(addprefix $(SRCS_DIR), $(SRCS_FILES))
 SRCS_INCLUDES = $(addprefix $(SRCS_DIR), $(SRCS_HEADERS))
 SRCS_OBJS = $(addprefix $(OBJ_DIR), $(SRCS_FILES:.cpp=.o))
 
 $(OBJ_DIR)%.o: $(SRCS_DIR)%.cpp
+	mkdir -p $(OBJ_DIR)
+	$(CC) $(FLAGS) -o $@ -c $<
+
+#### SERVER FILES
+
+SERVER_DIR = srcs/server/
+SERVER_FILES = Server.cpp
+SERVER_HEADERS = Server.hpp
+
+SERVER_SRCS = $(addprefix $(SERVER_DIR), $(SERVER_FILES))
+SERVER_INCLUDES = $(addprefix $(SERVER_DIR), $(SERVER_HEADERS))
+SERVER_OBJS = $(addprefix $(OBJ_DIR), $(SERVER_FILES:.cpp=.o))
+
+$(OBJ_DIR)%.o: $(SERVER_DIR)%.cpp
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(FLAGS) -o $@ -c $<
 

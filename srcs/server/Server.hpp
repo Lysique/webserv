@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/06/27 14:49:59 by fejjed           ###   ########.fr       */
+/*   Updated: 2022/07/05 11:25:07 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <errno.h>
-#include "config/ParserConfig.hpp"
+#include "../config/ParserConfig.hpp"
 
 #define MAX_CONNECTIONS 65535 
 #define DATA_BUFFER 800000
