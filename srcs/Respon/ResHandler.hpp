@@ -1,5 +1,25 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ResHandler.hpp                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2022/07/05 11:34:22 by tamighi           #+#    #+#             */
+/*   Updated: 2022/07/05 12:15:45 by tamighi          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #ifndef RESHANDLER_HPP
 # define RESHANDLER_HPP
+
+#include <stdio.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <dirent.h>
+#include <string.h>
+
 #include "../config/ParserConfig.hpp"
 #include "../request/ParserRequest.hpp"
 #include "../utils/cgi.hpp"
@@ -54,16 +74,12 @@ class ResHandler
 {
 
 public:
-	CGI g;
-	std::string	TheReposn;
-	std::string	EroRep[520];
 	ResHandler();
 	~ResHandler();
+
 	void	ParseQueryString_(const std::string &query_string);
 	int	POSTMethodes();
 	void	Methodes(std::string FileConf);
-	RespHeader MainServer;
-	std::string Uploadit(std::string sear, std::string buffer);
 	void	reseat(void);
 	void	Erostatus(void);
 	int		GetMethodes(void);
@@ -76,25 +92,27 @@ public:
 	void	GetContent_Type(std::string path);
 	void	ErrorPage(void);
 	bool CheckifPathisFile(const char * path);
+	RespHeader MainServer;
+	std::string	TheReposn;
+
+private:
+	CGI g;
+	std::string	EroRep[520];
+	std::string Uploadit(std::string sear, std::string buffer);
 	std::string FautoIndex(const char *path);
 	std::string geit(std::string const &dirEntry, std::string Directory, std::string const &host);
-};
-class cc : public std::exception
-{
-	const char * what () const throw () { return ("Time out, closing connection"); }
-};
-class xx : public std::exception
-{
-	const char * what () const throw () { return ("Failed to select!"); }
-};
 
-ResHandler::ResHandler()
-{
-}
-ResHandler::~ResHandler()
-{
-}
-
+	/*
+	class cc : public std::exception
+	{
+		const char * what () const throw () { return ("Time out, closing connection"); }
+	};
+	class xx : public std::exception
+	{
+		const char * what () const throw () { return ("Failed to select!"); }
+	};
+	*/
+};
 std::ostream&	operator<<(std::ostream &ostr, ParserRequest& pr);
 
 #endif

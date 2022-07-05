@@ -6,9 +6,12 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 11:25:07 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 11:34:14 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
+#ifndef SERVER_HPP
+# define SERVER_HPP
 
 #include <iostream>
 #include <string>
@@ -19,9 +22,11 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include "../config/ParserConfig.hpp"
+#include "../Respon/ResHandler.hpp"
 
 #define MAX_CONNECTIONS 65535 
 #define DATA_BUFFER 800000
+
 class ConnectionErr : public std::exception
 {
 	const char * what () const throw () { return ("Read error occurred while receiving on the socket, closing connection"); }
@@ -51,3 +56,5 @@ class Server
 
 		std::string buffu;
 };
+
+#endif

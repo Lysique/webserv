@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:25:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 11:28:06 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 11:31:48 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -129,3 +129,128 @@ int Server::create_server(int iport, std::string host)
 	return efd;
 }
 
+int Server::run(std::string FileConf)
+{
+	fd_set read_fd_set;
+	fd_set write_fd_set = {0};
+	;
+	int new_fd, ret_val, i;
+	int check_probl = 0;
+	socklen_t addrlen;
+	int all_connections[MAX_CONNECTIONS];
+	std::string kfe;
+
+	for (int i = 0; i < getNbPort(); i++)
+	{
+		if (fd[i] == -1)
+		{
+			return -1;
+		}
+	}
+	for (i = 0; i < MAX_CONNECTIONS; i++)
+	{
+		all_connections[i] = -1;
+	}
+	for (int i = 0; i < getNbPort(); i++)
+	{
+		all_connections[i] = fd[i];
+	}
+	while (1)
+	{
+		FD_ZERO(&read_fd_set);
+		FD_ZERO(&write_fd_set);
+		for (i = 0; i < MAX_CONNECTIONS; i++)
+		{
+			if (all_connections[i] >= 0)
+			{
+				FD_SET(all_connections[i], &read_fd_set);
+			}
+		}
+		ret_val = select(FD_SETSIZE, &read_fd_set, &write_fd_set, NULL, NULL);
+		if (ret_val >= 0)
+		{
+			for (int i = 0; i < getNbPort(); i++)
+			{
+				if (FD_ISSET(fd[i], &read_fd_set))
+				{
+					new_fd = accept(fd[i], (struct sockaddr *)&new_addr, &addrlen);
+					fcntl(fd[i], F_SETFD, FD_CLOEXEC);
+					if (new_fd >= 0)
+					{
+						for (i = 0; i < MAX_CONNECTIONS; i++)
+						{
+							if (all_connections[i] < 0)
+							{
+								all_connections[i] = new_fd;
+								break;
+							}
+						}
+					}
+					if (new_fd == -1)
+					{
+						std::cout << "accept() failed for fd \n"
+								  << strerror(errno) << std::endl;
+					}
+					ret_val--;
+					if (!ret_val)
+						continue;
+				}
+			}
+			for (i = 1; i < MAX_CONNECTIONS; i++)
+			{
+
+				int err = -1;
+				if ((all_connections[i] > 0) && (FD_ISSET(all_connections[i], &read_fd_set)))
+				{
+					err = read_connection(all_connections[i]);
+					if (err == 0)
+					{
+						ResHandler test;
+						char buf[DATA_BUFFER + 1];
+						memset(buf, 0, DATA_BUFFER);
+						strcpy(buf, buffu.c_str());
+						test.MainServer.bando = buffu;
+						std::string conttype;
+						test.parse_buf(buf, test.MainServer.filename, conttype);
+						ParserRequest pr(buf);
+						test.MainServer.host = pr.getRequest().host;
+						test.MainServer.protocol = pr.getRequest().protocol;
+						test.MainServer.type = pr.getRequest().method;
+						test.MainServer.path = pr.getRequest().location;
+						test.MainServer.content_len = pr.getRequest().content_length;
+						test.MainServer.buffit = std::string(buf);
+						test.CheckModiDate();
+						test.setDate();
+						test.Erostatus();
+						test.Methodes(FileConf);
+						int checkWrit = write(all_connections[i], test.TheReposn.c_str(), (test.TheReposn.size() + 1));
+						if (checkWrit == 0)
+							check_probl = 0;
+						else if (checkWrit == -1)
+							check_probl = -1;
+						close(all_connections[i]);
+						fcntl(all_connections[i], F_SETFD, FD_CLOEXEC);
+						FD_CLR(all_connections[i], &read_fd_set);
+						buffu = "";
+						test.TheReposn = "";
+						all_connections[i] = -1;
+						break;
+					}
+					if (err == 5)
+					{
+						close(all_connections[i]);
+						all_connections[i] = -1;
+					}
+					if (err == -1)
+					{
+						break;
+					}
+				}
+				err--;
+			}
+		}
+	}
+	close(new_fd);
+	close(ret_val);
+	return 0;
+}
