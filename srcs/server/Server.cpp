@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:25:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 13:37:35 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 15:31:28 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,16 @@
 
 Server::Server(std::vector<ServerMembers> &a)
 {
+	int	fdd;
+
 	servers = a;
 	NbPort = servers.size();
 	for (int i = 0; i < NbPort; ++i)
-		fd[i] = create_server(servers[i].port, servers[i].host); 
+	{
+		fdd = create_server(servers[i].port, servers[i].host); 
+		fd[i] = fdd;
+		NewFds.push_back(fdd);
+	}
 }
 
 Server::~Server(void)
@@ -39,14 +45,13 @@ int Server::create_server(int iport, std::string host)
 		throw std::runtime_error("Fcntl failed.");
 
 
-	//	TO CHECK
-	int optval = 1;
-	if (setsockopt(efd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0)
+	//	Allow the port to be reusable when restarting
+	int reuse = 1;
+	if (setsockopt(efd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int)) < 0)
 		throw std::runtime_error("Setsockopt failed.");
 
 	saddr.sin_family = AF_INET;        
 	saddr.sin_port = htons(iport);
-
 	saddr.sin_addr.s_addr = inet_addr(host.c_str());
 
 	//	Bind socket to address and listen to it
@@ -57,77 +62,86 @@ int Server::create_server(int iport, std::string host)
 	return (efd);
 }
 
+
+int Server::read_connection(int socket)
+{
+	char	buffer[DATA_BUFFER + 1];
+	int		ret;
+
+	memset(buffer, 0, DATA_BUFFER);
+	ret = read(socket, buffer, DATA_BUFFER);
+	if (ret == -1)
+	{
+		return (-1);
+		//throw std::runtime_error("Read failed.");
+	}
+	if (ret == 0)
+	{
+		close(socket);
+		return (-1);
+	}
+	buffu += std::string(buffer, ret);
+	size_t res = buffu.find("\r\n\r\n");
+	if (res != std::string::npos)
+	{
+		if (buffu.find("Content-Length: ") == std::string::npos)
+			return (0);
+	
+		size_t len = std::atoi(buffu.substr(buffu.find("Content-Length: ") + strlen("Content-Length: "), 10).c_str());
+		
+		if (buffu.size() >= len + res + strlen("\r\n\r\n"))
+			return (0);
+		else
+			return (-1);
+	}
+	return (-1);
+}
+
 int Server::run(std::string FileConf)
 {
-	fd_set read_fd_set;
-	fd_set write_fd_set = {0};
+	fd_set	current_sockets, ready_sockets;
+	int		nb_connections, client_socket;
 
-	int new_fd, nb_connections, i;
-	int check_probl = 0;
 	socklen_t addrlen;
-	int all_connections[MAX_CONNECTIONS];
-	std::string kfe;
 
-	//	Init fds with server fds (cannot use class member // vectors ?)
-	for (i = 0; i < MAX_CONNECTIONS; i++)
-		all_connections[i] = -1;
-	for (int i = 0; i < NbPort; i++)
-		all_connections[i] = fd[i];
+	//	Init current_sockets
+	FD_ZERO(&current_sockets);
+	for (size_t i = 0; i < NewFds.size(); ++i)
+		FD_SET(NewFds[i], &current_sockets);
 
 	while (1)
 	{
-		FD_ZERO(&read_fd_set);
-		FD_ZERO(&write_fd_set);
+		//	Copy because select is destructive
+		ready_sockets = current_sockets;
 
-		//	Put the fd in the set of select
-		for (i = 0; i < MAX_CONNECTIONS; i++)
-		{
-			if (all_connections[i] != -1)
-				FD_SET(all_connections[i], &read_fd_set);
-		}
-
-		//	Select
-		nb_connections = select(FD_SETSIZE, &read_fd_set, &write_fd_set, NULL, NULL);
-		if (nb_connections == -1)
+		nb_connections = select(FD_SETSIZE, &current_sockets, NULL, NULL, NULL);
+		if (nb_connections < 0)
 			throw std::runtime_error("Select failed.");
 
-		//	Loop to accept connections
-		for (int i = 0; i < NbPort; i++)
+		//	Accept connection
+		for (int i = 0; i < FD_SETSIZE; ++i)
 		{
-			if (FD_ISSET(fd[i], &read_fd_set))
+			if (FD_ISSET(i, &ready_sockets))
 			{
-				new_fd = accept(fd[i], (struct sockaddr *)&new_addr, &addrlen);
-				if (new_fd == -1)
-					throw std::runtime_error("Accept failed.");
-				fcntl(fd[i], F_SETFD, FD_CLOEXEC);
+				//	Need to check if it is a server ?
+				//	If server : accept, else handle connection
+				client_socket = accept(i, (struct sockaddr *)&new_addr, &addrlen);
 
-				//	Put the new connection if there is one in all connections
-				if (new_fd >= 0)
-				{
-					for (i = 0; i < MAX_CONNECTIONS; i++)
-					{
-						if (all_connections[i] < 0)
-						{
-							all_connections[i] = new_fd;
-							break;
-						}
-					}
-				}
-				//	Continue till no more connections
-				nb_connections--;
-				if (!nb_connections)
-					continue;
+				//	Put the connection in the set
+				if (client_socket != -1)
+					FD_SET(client_socket, &current_sockets);
+					//throw std::runtime_error("Accept failed.");
 			}
 		}
 
-		//	Loop again to get request and respond
-		for (i = 1; i < MAX_CONNECTIONS; i++)
+		//	Handle connection
+		for (int i = 0; i < FD_SETSIZE; ++i)
 		{
-
 			int err = -1;
-			if ((all_connections[i] > 0) && (FD_ISSET(all_connections[i], &read_fd_set)))
+			if (FD_ISSET(i, &current_sockets))
 			{
-				err = read_connection(all_connections[i]);
+				//	Try to read connection
+				err = read_connection(i);
 				if (err == 0)
 				{
 					ResHandler test;
@@ -148,59 +162,18 @@ int Server::run(std::string FileConf)
 					test.setDate();
 					test.Erostatus();
 					test.Methodes(FileConf);
-					int checkWrit = write(all_connections[i], test.TheReposn.c_str(), (test.TheReposn.size() + 1));
-					if (checkWrit == 0)
-						check_probl = 0;
-					else if (checkWrit == -1)
-						check_probl = -1;
-					close(all_connections[i]);
-					fcntl(all_connections[i], F_SETFD, FD_CLOEXEC);
-					FD_CLR(all_connections[i], &read_fd_set);
+					//	TO CHECK
+					write(i, test.TheReposn.c_str(), (test.TheReposn.size() + 1));
+					close(i);
+					fcntl(i, F_SETFD, FD_CLOEXEC);
+					FD_CLR(i, &current_sockets);
 					buffu = "";
 					test.TheReposn = "";
-					all_connections[i] = -1;
-					break;
-				}
-				if (err == 5)
-				{
-					close(all_connections[i]);
-					all_connections[i] = -1;
-				}
-				if (err == -1)
-				{
 					break;
 				}
 			}
-			err--;
 		}
 	}
-	close(new_fd);
+	//close(new_fd);
 	return 0;
-}
-
-int Server::read_connection(int socket)
-{
-	char	buffer[DATA_BUFFER + 1];
-
-	memset(buffer, 0, DATA_BUFFER);
-	int ret = recv(socket, buffer, DATA_BUFFER, 0);
-	if (ret == -1)
-		return -1;
-	if (ret == 0)
-		return 5;
-	buffu += std::string(buffer, ret);
-	size_t res = buffu.find("\r\n\r\n");
-	if (res != std::string::npos)
-	{
-		if (buffu.find("Content-Length: ") == std::string::npos)
-			return (0);
-	
-		size_t len = std::atoi(buffu.substr(buffu.find("Content-Length: ") + strlen("Content-Length: "), 10).c_str());
-		
-		if (buffu.size() >= len + res + strlen("\r\n\r\n"))
-			return (0);
-		else
-			return (1);
-	}
-	return (1);
 }

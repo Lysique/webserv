@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 13:35:51 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 14:23:55 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,17 +37,16 @@ public:
 	~Server(void);
 
 	int	run(std::string FileConf);
-	int read_connection(int socket);
 
 private:
 	int create_server(int iport, std::string host);
+	int read_connection(int socket);
 
 
 	std::vector<ServerMembers> servers;
-	
+	std::vector<int>			NewFds;
 	int					fd[MAX_CONNECTIONS];
 	int					efd;
-
 	int					NbPort;
 	struct sockaddr_in	new_addr;
 
