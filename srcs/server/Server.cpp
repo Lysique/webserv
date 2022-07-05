@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:25:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 16:09:43 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 16:19:56 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,40 +14,38 @@
 
 Server::Server(std::vector<ServerMembers> &a)
 {
-	int	fdd;
+	int	fd;
 
 	servers = a;
-	NbPort = servers.size();
-	for (int i = 0; i < NbPort; ++i)
+	for (size_t i = 0; i < servers.size(); ++i)
 	{
-		fdd = create_server(servers[i].port, servers[i].host); 
-		fd[i] = fdd;
-		NewFds.push_back(fdd);
+		fd = create_server(servers[i].port, servers[i].host); 
+		NewFds.push_back(fd);
 	}
 }
 
 Server::~Server(void)
 {
-	for (int i = 0; i < NbPort; i++)
-		close(fd[i]);
-	close(efd);
+	for (size_t i = 0; i < NewFds.size(); i++)
+		close(NewFds[i]);
 }
 
 int Server::create_server(int iport, std::string host)
 {
-	struct sockaddr_in saddr;
+	struct sockaddr_in	saddr;
+	int					fd;
 
 	//	Create socket
-	efd = socket(AF_INET, SOCK_STREAM, 0); 
-	if (efd < 0)
+	fd = socket(AF_INET, SOCK_STREAM, 0); 
+	if (fd < 0)
 		throw std::runtime_error("Socket failed.");
-	if (fcntl(efd, F_SETFL, O_NONBLOCK) < 0)
+	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Fcntl failed.");
 
 
 	//	Allow the port to be reusable when restarting
 	int reuse = 1;
-	if (setsockopt(efd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int)) < 0)
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int)) < 0)
 		throw std::runtime_error("Setsockopt failed.");
 
 	saddr.sin_family = AF_INET;        
@@ -55,11 +53,11 @@ int Server::create_server(int iport, std::string host)
 	saddr.sin_addr.s_addr = inet_addr(host.c_str());
 
 	//	Bind socket to address and listen to it
-	if (bind(efd, (struct sockaddr*) &saddr, sizeof(saddr)) < 0)
+	if (bind(fd, (struct sockaddr*) &saddr, sizeof(saddr)) < 0)
 		throw std::runtime_error("Bind failed.");
-	if (listen(efd, 4092) < 0)
+	if (listen(fd, 4092) < 0)
 		throw std::runtime_error("Listen failed.");
-	return (efd);
+	return (fd);
 }
 
 
@@ -139,7 +137,8 @@ int Server::run(std::string FileConf)
 	fd_set	current_sockets, ready_sockets;
 	int		client_socket, read;
 
-	socklen_t addrlen;
+	struct sockaddr_in	client_addr;
+	int	addr_size = sizeof(socklen_t);
 
 	//	Init current_sockets
 	FD_ZERO(&current_sockets);
@@ -162,7 +161,7 @@ int Server::run(std::string FileConf)
 				//	If it is a server, we try to accept the connection.
 				if (isServerSocket(i))
 				{
-					client_socket = accept(i, (struct sockaddr *)&new_addr, &addrlen);
+					client_socket = accept(i, (struct sockaddr*)&client_addr, (socklen_t*)&addr_size);
 					{
 						if (client_socket == -1)
 							throw std::runtime_error("Accept failed.");

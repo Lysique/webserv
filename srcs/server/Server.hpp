@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 15:50:57 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 16:16:26 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,17 +41,13 @@ public:
 private:
 	int create_server(int iport, std::string host);
 	int read_connection(int socket);
-
-	bool	isServerSocket(int socket);
 	void	handle_connection(int socket, std::string FileConf);
 
+	bool	isServerSocket(int socket);
 
+	//	Server members
 	std::vector<ServerMembers> servers;
 	std::vector<int>			NewFds;
-	int					fd[MAX_CONNECTIONS];
-	int					efd;
-	int					NbPort;
-	struct sockaddr_in	new_addr;
 
 	std::string buffu;
 
