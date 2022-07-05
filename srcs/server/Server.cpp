@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:25:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 15:31:28 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 16:09:43 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,10 +71,9 @@ int Server::read_connection(int socket)
 	memset(buffer, 0, DATA_BUFFER);
 	ret = read(socket, buffer, DATA_BUFFER);
 	if (ret == -1)
-	{
-		return (-1);
-		//throw std::runtime_error("Read failed.");
-	}
+		throw std::runtime_error("Read failed.");
+
+	//	Client closed the connection
 	if (ret == 0)
 	{
 		close(socket);
@@ -97,10 +96,48 @@ int Server::read_connection(int socket)
 	return (-1);
 }
 
+bool	Server::isServerSocket(int socket)
+{
+	for (size_t i = 0; i < servers.size(); ++i)
+	{
+		if (NewFds[i] == socket)
+			return (true);
+	}
+	return (false);
+}
+
+void	Server::handle_connection(int socket, std::string FileConf)
+{
+	ResHandler test;
+	char buf[DATA_BUFFER + 1];
+	memset(buf, 0, DATA_BUFFER);
+	strcpy(buf, buffu.c_str());
+	test.MainServer.bando = buffu;
+	std::string conttype;
+	test.parse_buf(buf, test.MainServer.filename, conttype);
+	ParserRequest pr(buf);
+	test.MainServer.host = pr.getRequest().host;
+	test.MainServer.protocol = pr.getRequest().protocol;
+	test.MainServer.type = pr.getRequest().method;
+	test.MainServer.path = pr.getRequest().location;
+	test.MainServer.content_len = pr.getRequest().content_length;
+	test.MainServer.buffit = std::string(buf);
+	test.CheckModiDate();
+	test.setDate();
+	test.Erostatus();
+	test.Methodes(FileConf);
+	//	TO CHECK
+	write(socket, test.TheReposn.c_str(), (test.TheReposn.size() + 1));
+	close(socket);
+	fcntl(socket, F_SETFD, FD_CLOEXEC);
+	buffu = "";
+	test.TheReposn = "";
+}
+
 int Server::run(std::string FileConf)
 {
 	fd_set	current_sockets, ready_sockets;
-	int		nb_connections, client_socket;
+	int		client_socket, read;
 
 	socklen_t addrlen;
 
@@ -114,8 +151,7 @@ int Server::run(std::string FileConf)
 		//	Copy because select is destructive
 		ready_sockets = current_sockets;
 
-		nb_connections = select(FD_SETSIZE, &current_sockets, NULL, NULL, NULL);
-		if (nb_connections < 0)
+		if (select(FD_SETSIZE, &ready_sockets, NULL, NULL, NULL) < 0)
 			throw std::runtime_error("Select failed.");
 
 		//	Accept connection
@@ -123,57 +159,28 @@ int Server::run(std::string FileConf)
 		{
 			if (FD_ISSET(i, &ready_sockets))
 			{
-				//	Need to check if it is a server ?
-				//	If server : accept, else handle connection
-				client_socket = accept(i, (struct sockaddr *)&new_addr, &addrlen);
-
-				//	Put the connection in the set
-				if (client_socket != -1)
-					FD_SET(client_socket, &current_sockets);
-					//throw std::runtime_error("Accept failed.");
-			}
-		}
-
-		//	Handle connection
-		for (int i = 0; i < FD_SETSIZE; ++i)
-		{
-			int err = -1;
-			if (FD_ISSET(i, &current_sockets))
-			{
-				//	Try to read connection
-				err = read_connection(i);
-				if (err == 0)
+				//	If it is a server, we try to accept the connection.
+				if (isServerSocket(i))
 				{
-					ResHandler test;
-					char buf[DATA_BUFFER + 1];
-					memset(buf, 0, DATA_BUFFER);
-					strcpy(buf, buffu.c_str());
-					test.MainServer.bando = buffu;
-					std::string conttype;
-					test.parse_buf(buf, test.MainServer.filename, conttype);
-					ParserRequest pr(buf);
-					test.MainServer.host = pr.getRequest().host;
-					test.MainServer.protocol = pr.getRequest().protocol;
-					test.MainServer.type = pr.getRequest().method;
-					test.MainServer.path = pr.getRequest().location;
-					test.MainServer.content_len = pr.getRequest().content_length;
-					test.MainServer.buffit = std::string(buf);
-					test.CheckModiDate();
-					test.setDate();
-					test.Erostatus();
-					test.Methodes(FileConf);
-					//	TO CHECK
-					write(i, test.TheReposn.c_str(), (test.TheReposn.size() + 1));
-					close(i);
-					fcntl(i, F_SETFD, FD_CLOEXEC);
-					FD_CLR(i, &current_sockets);
-					buffu = "";
-					test.TheReposn = "";
-					break;
+					client_socket = accept(i, (struct sockaddr *)&new_addr, &addrlen);
+					{
+						if (client_socket == -1)
+							throw std::runtime_error("Accept failed.");
+						FD_SET(client_socket, &current_sockets);
+					}
+				}
+				//	Else, we handle the connection.
+				else
+				{
+					read = read_connection(i);
+					if (read == 0)
+					{
+						handle_connection(i, FileConf);
+						FD_CLR(i, &current_sockets);
+					}
 				}
 			}
 		}
 	}
-	//close(new_fd);
-	return 0;
+	return (0);
 }

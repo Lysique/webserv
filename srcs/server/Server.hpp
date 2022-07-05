@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 14:23:55 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/05 15:50:57 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,9 @@ public:
 private:
 	int create_server(int iport, std::string host);
 	int read_connection(int socket);
+
+	bool	isServerSocket(int socket);
+	void	handle_connection(int socket, std::string FileConf);
 
 
 	std::vector<ServerMembers> servers;
