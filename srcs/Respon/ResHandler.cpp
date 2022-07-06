@@ -6,17 +6,117 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/05 11:35:33 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 13:41:40 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/06 15:03:21 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ResHandler.hpp"
 
-ResHandler::ResHandler()
+ResHandler::ResHandler(std::vector<ServerMembers> s)
+	: servers(s)
 {
+	EroRep[100] = "Continue";
+	EroRep[200] = "OK";
+	EroRep[201] = "Created";
+	EroRep[204] = "No Content";
+	EroRep[400] = "Bad Request";
+	EroRep[403] = "Forbidden";
+	EroRep[404] = "Not Found";
+	EroRep[405] = "Method Not Allowed";
+	EroRep[413] = "Payload Too Large";
+	EroRep[500] = "Internal Server Error";
+	EroRep[501] = "Not Implemented";
 }
+
 ResHandler::~ResHandler()
 {
+}
+
+void ResHandler::manage_request(RequestMembers r)
+{
+	request = r;
+	MainServer.host = r.host;
+	MainServer.protocol = r.protocol;
+	MainServer.type = r.method;
+	MainServer.path = r.location;
+	MainServer.content_len = r.content_length;
+
+	parse_post(MainServer.bando);
+	write_response();
+}
+
+void	ResHandler::write_response(void)
+{
+	ServerMembers	current_server;
+	LocationMembers	current_location;
+
+	//	Find correct server
+	for (size_t i = 0; i < servers.size(); ++i)
+	{
+		if (request.port == servers[i].port)
+			current_server = servers[i];
+	}
+
+	//	Find correct location
+	for (size_t i = 0; i < current_server.locations.size(); ++i)
+	{
+		if (request.location.find(current_server.locations[i].uri) != std::string::npos)
+		{
+			current_location = current_server.locations[i];
+			break ;
+		}
+	}
+	
+	//	ASSIGN BEGIN
+
+	//	Assign location variables to MainServer
+	MainServer.uril_root = current_location.root;
+	MainServer.max_body = current_location.max_body_size;
+	MainServer.upload = current_server.upload;
+
+	//	Check for serv names
+	MainServer.serv_name = "Hello";
+	//	Cgi paths to mp
+	MainServer.mp = current_server.cgi_paths;
+	//	Error to mp
+	for (std::map<int, std::string>::iterator it = current_location.error_pages.begin(); it != current_location.error_pages.end(); ++it)
+		MainServer.mp[std::to_string(it->first)] = it->second;
+	//	Check for location / root / index
+	
+	//	If root == /path/ and file = /file -> To check
+	if (request.location.front() == '/')
+		request.location.erase(0, 1);
+
+	//	Add index if needed
+	MainServer.path = current_location.root + request.location;
+	if (MainServer.path == current_location.root)
+		MainServer.path += current_location.index.front();
+
+	//	ASSIGN END
+
+	//	!!Allowed methods!
+	if (MainServer.type == "GET")
+		GetMethodes();
+	else if (MainServer.type == "DELETE")
+		DeleteMethodes();
+	else if (MainServer.type == "POST")
+		POSTMethodes();
+	//	Unallowed methods
+	else
+	{
+		reseat();
+		if (MainServer.type == "POST" || MainServer.type == "DELETE" || MainServer.type == "GET")
+			MainServer.code = 405;
+		else
+			MainServer.code = 501;
+
+
+		ErrorPage();
+		TheReposn += MainServer.protocol + " " + std::to_string(MainServer.code) + " " + EroRep[MainServer.code];
+		TheReposn += "\nServer: Webserv /1.0.0";
+		TheReposn += "\n\n";
+		TheReposn += MainServer.http;
+	}
 }
 
 template <typename T>
@@ -27,86 +127,7 @@ std::string ToString(T numb)
 	return stream.str();
 }
 
-void ResHandler::Methodes(std::string FileConf)
-{
-	ParserConfig cf(FileConf);
-	MainServer.ConfigName = FileConf;
-	std::vector<ServerMembers> servers = cf.getConfig();
-	std::vector<ServerMembers>::iterator it = cf.getConfig().begin();
-	std::vector<ServerMembers>::iterator ss = cf.getConfig().begin();
-	std::vector<ServerMembers>::iterator xx = cf.getConfig().end();
-	int j = 1;
-	int jn = 1;
-	std::string aled;
-	std::string all;
-	all = "";
-	int num;
-	bool yes;
-	std::map<int, int> portfind;
-
-
-	for (int pl = 1; ss != xx; ++ss, ++pl, jn++)
-		portfind.insert(std::make_pair(ss->port, jn));
-	std::vector<LocationMembers>::iterator locItos = it->locations.begin();
-	for (int i = 1; i != portfind[atoi(MainServer.host.substr(MainServer.host.find(":") + 1).c_str())]; i++)
-		it++;
-	for (std::vector<LocationMembers>::iterator locIt = it->locations.begin(); locIt != it->locations.end(); ++locIt, locItos++, ++j)
-	{
-		if (MainServer.path.find(locIt->uri) != std::string::npos)
-		{
-			num = j;
-			MainServer.uril_root = locIt->root;
-			aled = locIt->uri;
-			MainServer.max_body = locIt->max_body_size;
-			MainServer.upload = it->upload;
-			for (std::map<int, std::string>::iterator errIt = locIt->error_pages.begin(); errIt != locIt->error_pages.end(); ++errIt)
-				MainServer.mp.insert(std::make_pair(ToString(errIt->first), errIt->second));
-			all = "";
-			for (std::set<std::string>::iterator namesIt = locItos->allowedMethods.begin(); namesIt != locItos->allowedMethods.end(); ++namesIt)
-					all += *namesIt;
-			yes = true;
-		}
-		else if (yes != true)
-		{
-			MainServer.max_body = it->max_body_size;
-		}
-		for (std::map<std::string, std::string>::iterator namesIt = it->cgis.begin(); namesIt != it->cgis.end(); ++namesIt)
-			MainServer.mp.insert(std::make_pair(namesIt->first, namesIt->second));
-		MainServer.upload = it->upload;
-	}
-	for (std::vector<std::string>::iterator namesIt = it->server_name.begin(); namesIt != it->server_name.end(); ++namesIt)
-		MainServer.serv_name = *namesIt;
-	std::map<std::string, std::string> indexmap;
-	for (std::vector<LocationMembers>::iterator locIt = it->locations.begin(); locIt != it->locations.end(); ++locIt, ++j)
-		for (std::vector<std::string>::iterator namesIt = locIt->index.begin(); namesIt != locIt->index.end(); ++namesIt)
-			indexmap.insert(std::make_pair(locIt->uri, *namesIt));
-	if (MainServer.path == aled)
-		MainServer.path += indexmap[aled];
-	MainServer.path.replace(MainServer.path.find(aled), aled.length(), MainServer.uril_root);
-	TheReposn = "";
-	if (MainServer.type == "GET" && all.find(MainServer.type) != std::string::npos)
-		GetMethodes();
-	else if (MainServer.type == "DELETE" && all.find(MainServer.type) != std::string::npos)
-		DeleteMethodes();
-	else if (MainServer.type == "POST" && all.find(MainServer.type) != std::string::npos)
-		POSTMethodes();
-	else
-	{
-		reseat();
-		if (MainServer.type == "POST" || MainServer.type == "DELETE" || MainServer.type == "GET")
-			MainServer.code = 405;
-		else
-			MainServer.code = 501;
-		ErrorPage();
-		TheReposn += MainServer.protocol + " " + ToString(MainServer.code) + " " + EroRep[MainServer.code];
-		TheReposn += "\nDate : " + MainServer.time;
-		TheReposn += "\nServer: Webserv /1.0.0";
-		TheReposn += "\n\n";
-		TheReposn += MainServer.http;
-	}
-}
-
-void ResHandler::parse_buf(char *buf, std::string &filename, std::string &content_type)
+void ResHandler::parse_post(std::string buf)
 {
 	std::stringstream ss(buf);
 	std::string word;
@@ -114,21 +135,7 @@ void ResHandler::parse_buf(char *buf, std::string &filename, std::string &conten
 	while (ss >> word)
 	{
 		if (word.size() > 9 && word.substr(0, 9) == "filename=")
-			filename = word.substr(9);
-		if (word.size() == 13 && word.substr(0, 13) == "Content-Type:")
-			ss >> content_type;
-	}
-}
-
-void parse_post(char *buf, std::string &filename)
-{
-	std::stringstream ss(buf);
-	std::string word;
-
-	while (ss >> word)
-	{
-		if (word.size() > 9 && word.substr(0, 9) == "filename=")
-			filename = word.substr(9);
+			MainServer.filename = word.substr(9);
 	}
 }
 
@@ -144,7 +151,8 @@ std::string removeAll(std::string str, const std::string &from)
 
 bool ResHandler::CheckifPathisFile(const char *path)
 {
-	struct stat s;
+	struct stat	s;
+
 	if (stat(path, &s) == 0)
 	{
 		if (s.st_mode & S_IFDIR)
@@ -157,66 +165,47 @@ bool ResHandler::CheckifPathisFile(const char *path)
 	return true;
 }
 
-void ResHandler::setDate(void)
-{
-	struct tm *Time;
-	char stock[100];
-	struct timeval timeval;
-
-	gettimeofday(&timeval, NULL);
-	Time = gmtime(&timeval.tv_sec);
-	strftime(stock, 100, "%a, %d %b %Y %H:%M:%S GMT", Time);
-	MainServer.time = std::string(stock);
-}
-
-void ResHandler::CheckModiDate(void)
-{
-	char src[100];
-	struct stat status;
-	struct tm *That;
-
-	if (stat(MainServer.path.c_str(), &status) == 0)
-	{
-		That = gmtime(&status.st_mtime);
-		strftime(src, 100, "%a, %d %b %Y %H:%M:%S GMT", That);
-		MainServer.Modiftime = std::string(src);
-	}
-}
-
 void ResHandler::GetContent_Type(std::string path)
 {
 	MainServer.content_type = path.substr(path.rfind(".") + 1, path.size() - path.rfind("."));
+
 	MainServer.cgitype = MainServer.content_type;
+
 	if (MainServer.content_type == "html")
 		MainServer.content_type = "text/html";
-	else if (MainServer.content_type == "pdf")
-		MainServer.content_type = "application/pdf";
 	else if (MainServer.content_type == "xml")
 		MainServer.content_type = "text/xml";
 	else if (MainServer.content_type == "js")
 		MainServer.content_type = "text/javascript";
 	else if (MainServer.content_type == "css")
 		MainServer.content_type = "text/css";
+	else if (MainServer.content_type == ".cpp")
+		MainServer.content_type = "text/plain";
+
+	else if (MainServer.content_type == "pdf")
+		MainServer.content_type = "application/pdf";
+	else if (MainServer.content_type == "doc")
+		MainServer.content_type = "application/msword";
+
 	else if (MainServer.content_type == "jpeg" || MainServer.content_type == "jpg" || MainServer.content_type == "pjp" || MainServer.content_type == "jfif" || MainServer.content_type == "pjpeg")
 		MainServer.content_type = "image/jpeg";
 	else if (MainServer.content_type == "png")
 		MainServer.content_type = "image/png";
+	else if (MainServer.content_type == "gif")
+		MainServer.content_type = "image/gif";
+	else if (MainServer.content_type == "ico")
+		MainServer.content_type = "image/x-icon";
+
 	else if (MainServer.content_type == "mp4")
 		MainServer.content_type = "video/mp4";
 	else if (MainServer.content_type == "webm")
 		MainServer.content_type = "video/webm";
 	else if (MainServer.content_type == "mpeg")
 		MainServer.content_type = "video/mpeg";
+
 	else if (MainServer.content_type == "mp3")
 		MainServer.content_type = "audio/mpeg";
-	else if (MainServer.content_type == "doc")
-		MainServer.content_type = "application/msword";
-	else if (MainServer.content_type == "gif")
-		MainServer.content_type = "image/gif";
-	else if (MainServer.content_type == "ico")
-		MainServer.content_type = "image/x-icon";
-	else if (MainServer.content_type == ".cpp")
-		MainServer.content_type = "text/plain";
+
 	else
 		MainServer.content_type = "text/html";
 }
@@ -227,15 +216,18 @@ int ResHandler::filexist(const char *fileName)
 {
 	std::string line;
 	MainServer.code = 200;
-	ParserConfig cf(MainServer.ConfigName);
 	int autoindx[65535];
-	std::vector<ServerMembers>::iterator ite = cf.getConfig().end();
-	std::vector<ServerMembers>::iterator it = cf.getConfig().begin();
+	std::vector<ServerMembers>::iterator ite = servers.end();
+	std::vector<ServerMembers>::iterator it = servers.begin();
+
 	for (int i = 1; it != ite; ++it, ++i)
 	{
 		autoindx[it->port] = it->autoindex;
 	}
+
 	std::ifstream document;
+
+	//	Check if there is a file
 	if (CheckifPathisFile(fileName) == true)
 	{
 		if ((access(fileName, F_OK) == 0))
@@ -251,19 +243,19 @@ int ResHandler::filexist(const char *fileName)
 			MainServer.http = test.str();
 			if (MainServer.cgitype == "py" && MainServer.mp[".py"].find("/usr/bin/python") != std::string::npos)
 			{
-				MainServer.http = g.cgiExecute("/usr/bin/python", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando, MainServer.code);
+				MainServer.http = g.cgiExecute("/usr/bin/python", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando);
 				MainServer.code = 200;
 				return MainServer.code;
 			}
 			else if (MainServer.cgitype == "pl" && MainServer.mp[".pl"].find("/usr/bin/perl") != std::string::npos)
 			{
-				MainServer.http = g.cgiExecute("/usr/bin/perl", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando, MainServer.code);
+				MainServer.http = g.cgiExecute("/usr/bin/perl", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando);
 				MainServer.code = 200;
 				return MainServer.code;
 			}
 			else if (MainServer.cgitype == "php" && MainServer.mp[".php"].find("/usr/bin/php") != std::string::npos)
 			{
-				MainServer.http = g.cgiExecute("/usr/bin/php", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando, MainServer.code);
+				MainServer.http = g.cgiExecute("/usr/bin/php", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando);
 				MainServer.code = 200;
 				return MainServer.code;
 			}
@@ -305,33 +297,46 @@ void ResHandler::ErrorPage(void)
 	}
 }
 
-void ResHandler::Erostatus(void)
+void	check_path(std::string path)
 {
-	EroRep[100] = "Continue";
-	EroRep[200] = "OK";
-	EroRep[201] = "Created";
-	EroRep[204] = "No Content";
-	EroRep[400] = "Bad Request";
-	EroRep[403] = "Forbidden";
-	EroRep[404] = "Not Found";
-	EroRep[405] = "Method Not Allowed";
-	EroRep[413] = "Payload Too Large";
-	EroRep[500] = "Internal Server Error";
-	EroRep[501] = "Not Implemented";
+	struct stat	s;
+
+
+	if (stat(path, &s) == 0)
+	{
+		if (s.st_mode & S_IFREG)
+			std::cout << "FILE\n";
+	}
+
+	if (access(path.c_str(), F_OK) == 0)
+		std::cout << "xx\n";
 }
 
 int ResHandler::GetMethodes(void)
 {
+	//	Need to check path
+	
+	//	Weird realpath stuff here
 	std::string raw_path = realpath(".", NULL);
+
 	std::string path = realpath(".", NULL) + removeAll(MainServer.path, realpath(".", NULL));
-	if (path.find(raw_path + raw_path) != std::string::npos)
-		path = path.substr(path.find(raw_path));
+
+	std::cout << MainServer.path << std::endl;
 	MainServer.path = path + "/";
+
+	//	Content type
 	GetContent_Type(path);
+
+	//	Check if file exist
 	filexist(path.c_str());
-	std::string testit;
+
+	check_path(path);
+	//	Error page
 	ErrorPage();
+
 	ParseQueryString_(MainServer.bando.substr(MainServer.bando.find("\r\n\r\n") + strlen("\r\n\r\n")));
+
+	//	If content length too big
 	if (MainServer.content_len >= MainServer.max_body)
 	{
 		MainServer.code = 413;
@@ -340,17 +345,16 @@ int ResHandler::GetMethodes(void)
 	}
 	else
 		MainServer.code = 200;
-	std::stringstream test;
+
 	if (MainServer.http.find("Status: 500") != std::string::npos)
 	{
 		MainServer.code = 500;
 		MainServer.http = "";
 		ErrorPage();
 	}
+
 	TheReposn += MainServer.protocol + " " + ToString(MainServer.code) + " " + EroRep[MainServer.code];
-	TheReposn += "\nDate : " + MainServer.time;
 	TheReposn += "\nServer: " + MainServer.serv_name;
-	TheReposn += "\nLast-modified " + MainServer.Modiftime;
 	TheReposn += "\nContent-Type: " + MainServer.content_type;
 	TheReposn += "\nContent-Length : " + std::to_string(MainServer.http.size() - 1);
 	TheReposn += "\nContent-Location: " + MainServer.path;
@@ -385,12 +389,12 @@ void ResHandler::DeleteMethodes(void)
 	if (MainServer.content_len >= MainServer.max_body)
 		MainServer.code = 413;
 	TheReposn += MainServer.protocol + " " + ToString(MainServer.code) + " " + EroRep[MainServer.code];
-	TheReposn += "\nDate : " + MainServer.time;
 	TheReposn += "\n\n";
 	reseat();
 	ErrorPage();
 	TheReposn += MainServer.http;
 }
+
 std::string ResHandler::Uploadit(std::string sear, std::string buffer)
 {
 	int check_prob = 0;
@@ -476,9 +480,9 @@ int ResHandler::POSTMethodes()
 	ParseQueryString_(MainServer.bando.substr(MainServer.bando.find("\r\n\r\n") + strlen("\r\n\r\n")));
 	GetContent_Type(path);
 	if (MainServer.path.substr(MainServer.path.find_last_of(".") + 1) == "php")
-		MainServer.http = g.cgiExecute("/usr/bin/php", path.c_str(), MainServer.postname, MainServer.postvalue, MainServer.envj, MainServer.bando, MainServer.code);
+		MainServer.http = g.cgiExecute("/usr/bin/php", path.c_str(), MainServer.postname, MainServer.postvalue, MainServer.envj, MainServer.bando);
 	if (MainServer.path.substr(MainServer.path.find_last_of(".") + 1) == "py")
-		MainServer.http = g.cgiExecute("/usr/bin/python", path.c_str(), MainServer.postname, MainServer.postvalue, MainServer.envj, MainServer.bando, MainServer.code);
+		MainServer.http = g.cgiExecute("/usr/bin/python", path.c_str(), MainServer.postname, MainServer.postvalue, MainServer.envj, MainServer.bando);
 	bool upload = false;
 	if (MainServer.content_len <= MainServer.max_body)
 	{
@@ -508,7 +512,6 @@ int ResHandler::POSTMethodes()
 		ErrorPage();
 	}
 	TheReposn += MainServer.protocol + " " + ToString(MainServer.code) + " " + EroRep[MainServer.code];
-	TheReposn += "\nDate : " + MainServer.time;
 	TheReposn += "\nServer: " + MainServer.serv_name;
 	TheReposn += "\nContent-Type: " + MainServer.content_type;
 	if (upload != true)

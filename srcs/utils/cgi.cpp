@@ -4,8 +4,8 @@ CGI::CGI() {}
 
 CGI::~CGI() {}
 
-std::string CGI::cgiExecute(std::string location, std::string executable ,std::string	postname[], std::string	postvalue[], int j,std::string m_request, int code){
-    code = 500;
+std::string CGI::cgiExecute(std::string location, std::string executable ,std::string	postname[], std::string	postvalue[], int j,std::string m_request)
+{
     std::vector<std::string> env;
     std::string content = m_request;
     std::string combine[10000];
@@ -55,9 +55,11 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
     int ret = 0;
     pid_t child = 0;
     pid_t parent = 0;
+
+
+	// ??
 	int checke_prob = 0;
     int fd = open("tmp", O_CREAT | O_TRUNC | O_WRONLY | O_NONBLOCK, 0777);
-
     int checke_Cwrite = write(fd, content.c_str(), content.size());
 	if (checke_Cwrite == 0)
 	{
@@ -70,8 +72,14 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
 
 
     close(fd);
+	// ??
+
+
+
+
     size_t i = 0;
 
+	//	env sert a quoi ??
     char **yes = new char *[env.size() + 1];
 
     for (; i != env.size(); i++)

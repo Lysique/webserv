@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/05 11:37:41 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 11:37:47 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/06 10:10:49 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ class CGI{
         CGI();
         ~CGI();
 
-        std::string cgiExecute(std::string location, std::string executable ,std::string	postname[], std::string	postvalue[], int j,std::string m_request, int code);
+        std::string cgiExecute(std::string location, std::string executable ,std::string	postname[], std::string	postvalue[], int j,std::string m_request);
 };
 
 #endif

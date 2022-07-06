@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/05 11:34:22 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 12:15:45 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/06 13:32:28 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,23 +37,22 @@
 
 struct RespHeader
 {
-	std::string	path;
-	std::string	protocol;
 	std::string	bando;
+
+	std::string	path;
+
+	std::string	protocol;
 	std::string	StatusCode;
 	std::string	type;
 	std::string	content_type;
 	int	content_len;
 	std::string	time;
-	std::string	Modiftime;
 	std::string	http;
 	std::string	server;
 	std::string	host;
 	std::string	encoding;
 	std::string	filename;
-	std::string	buf;
 	std::string	cgitype;
-	std::string	buffit;
 	std::string	serv_name;
 	std::string	upload;
 	std::string	postname[10000];
@@ -66,7 +65,6 @@ struct RespHeader
 	int			max_body;
 	std::string	content_length;
 	std::string	uril_root;
-	std::string	ConfigName;
 	std::string	index;
 };
 
@@ -74,24 +72,32 @@ class ResHandler
 {
 
 public:
-	ResHandler();
+	ResHandler(std::vector<ServerMembers> s);
 	~ResHandler();
 
+	void	manage_request(RequestMembers r);
+private:
+
+	//	Private functions
+	void	write_response(void);
+
+	//	Private members
+	std::vector<ServerMembers>	servers;
+	RequestMembers				request;
+
+public:
 	void	ParseQueryString_(const std::string &query_string);
 	int	POSTMethodes();
-	void	Methodes(std::string FileConf);
 	void	reseat(void);
-	void	Erostatus(void);
 	int		GetMethodes(void);
 	void 	DeleteMethodes(void);
 	void	DeletePathHandler(void);
 	int		filexist(const char *fileName);
-	void	setDate(void);
-	void	CheckModiDate(void);
-	void	parse_buf(char *buf, std::string& filename, std::string& content_type);
+	void parse_post(std::string buf);
 	void	GetContent_Type(std::string path);
 	void	ErrorPage(void);
 	bool CheckifPathisFile(const char * path);
+
 	RespHeader MainServer;
 	std::string	TheReposn;
 
@@ -101,17 +107,6 @@ private:
 	std::string Uploadit(std::string sear, std::string buffer);
 	std::string FautoIndex(const char *path);
 	std::string geit(std::string const &dirEntry, std::string Directory, std::string const &host);
-
-	/*
-	class cc : public std::exception
-	{
-		const char * what () const throw () { return ("Time out, closing connection"); }
-	};
-	class xx : public std::exception
-	{
-		const char * what () const throw () { return ("Failed to select!"); }
-	};
-	*/
 };
 std::ostream&	operator<<(std::ostream &ostr, ParserRequest& pr);
 

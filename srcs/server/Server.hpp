@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 16:16:26 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/06 10:00:40 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,38 +26,32 @@
 #include "../Respon/ResHandler.hpp"
 #include "../request/ParserRequest.hpp"
 
-#define MAX_CONNECTIONS 65535 
 #define DATA_BUFFER 800000
+
+class ResHandler;
 
 class Server
 {
 
 public:
+
+	//	Public functions
 	Server(std::vector<ServerMembers> &a);
 	~Server(void);
 
-	int	run(std::string FileConf);
+	int	run();
 
 private:
-	int create_server(int iport, std::string host);
-	int read_connection(int socket);
-	void	handle_connection(int socket, std::string FileConf);
 
-	bool	isServerSocket(int socket);
+	//	Private functions
+	int		create_server(int iport, std::string host);
+	void	handle_connection(int socket, ResHandler response);
 
-	//	Server members
+	bool	is_server_socket(int socket);
+
+	//	Private members
 	std::vector<ServerMembers> servers;
 	std::vector<int>			NewFds;
-
-	std::string buffu;
-
-	class ServerCreateError : public std::exception
-	{
-		const char * what () const throw ()
-		{ 
-			return ("An error occured while creating the server.");
-		}
-	};
 };
 
 #endif

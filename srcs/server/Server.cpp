@@ -1,12 +1,10 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
+/* ************************************************************************** */ /*                                                                            */ /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:25:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 16:19:56 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/06 09:58:14 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,41 +58,7 @@ int Server::create_server(int iport, std::string host)
 	return (fd);
 }
 
-
-int Server::read_connection(int socket)
-{
-	char	buffer[DATA_BUFFER + 1];
-	int		ret;
-
-	memset(buffer, 0, DATA_BUFFER);
-	ret = read(socket, buffer, DATA_BUFFER);
-	if (ret == -1)
-		throw std::runtime_error("Read failed.");
-
-	//	Client closed the connection
-	if (ret == 0)
-	{
-		close(socket);
-		return (-1);
-	}
-	buffu += std::string(buffer, ret);
-	size_t res = buffu.find("\r\n\r\n");
-	if (res != std::string::npos)
-	{
-		if (buffu.find("Content-Length: ") == std::string::npos)
-			return (0);
-	
-		size_t len = std::atoi(buffu.substr(buffu.find("Content-Length: ") + strlen("Content-Length: "), 10).c_str());
-		
-		if (buffu.size() >= len + res + strlen("\r\n\r\n"))
-			return (0);
-		else
-			return (-1);
-	}
-	return (-1);
-}
-
-bool	Server::isServerSocket(int socket)
+bool	Server::is_server_socket(int socket)
 {
 	for (size_t i = 0; i < servers.size(); ++i)
 	{
@@ -104,38 +68,46 @@ bool	Server::isServerSocket(int socket)
 	return (false);
 }
 
-void	Server::handle_connection(int socket, std::string FileConf)
+void	Server::handle_connection(int socket, ResHandler response)
 {
-	ResHandler test;
-	char buf[DATA_BUFFER + 1];
-	memset(buf, 0, DATA_BUFFER);
-	strcpy(buf, buffu.c_str());
-	test.MainServer.bando = buffu;
-	std::string conttype;
-	test.parse_buf(buf, test.MainServer.filename, conttype);
-	ParserRequest pr(buf);
-	test.MainServer.host = pr.getRequest().host;
-	test.MainServer.protocol = pr.getRequest().protocol;
-	test.MainServer.type = pr.getRequest().method;
-	test.MainServer.path = pr.getRequest().location;
-	test.MainServer.content_len = pr.getRequest().content_length;
-	test.MainServer.buffit = std::string(buf);
-	test.CheckModiDate();
-	test.setDate();
-	test.Erostatus();
-	test.Methodes(FileConf);
+	char	buffer[DATA_BUFFER + 1];
+	int		ret;
+
+	//	Read connection from socket
+	memset(buffer, 0, DATA_BUFFER);
+	ret = read(socket, buffer, DATA_BUFFER);
+	if (ret == -1)
+		throw std::runtime_error("Read failed.");
+
+	//	Client closed the connection -> no response needed
+	if (ret == 0)
+	{
+		close(socket);
+		return ;
+	}
+
+	//	Else handle the request.
+	
+	//	Store request XX
+	response.MainServer.bando = buffer;
+
+	//	Get a response
+	ParserRequest pr(buffer);
+	response.manage_request(pr.getRequest());
+
 	//	TO CHECK
-	write(socket, test.TheReposn.c_str(), (test.TheReposn.size() + 1));
+	write(socket, response.TheReposn.c_str(), (response.TheReposn.size() + 1));
 	close(socket);
-	fcntl(socket, F_SETFD, FD_CLOEXEC);
-	buffu = "";
-	test.TheReposn = "";
+	//	FCNTL flag interdit
+	//fcntl(socket, F_SETFD, FD_CLOEXEC);
+	response.TheReposn = "";
 }
 
-int Server::run(std::string FileConf)
+int Server::run()
 {
-	fd_set	current_sockets, ready_sockets;
-	int		client_socket, read;
+	fd_set		current_sockets, ready_sockets;
+	int			client_socket;
+	ResHandler	response(servers);
 
 	struct sockaddr_in	client_addr;
 	int	addr_size = sizeof(socklen_t);
@@ -159,7 +131,7 @@ int Server::run(std::string FileConf)
 			if (FD_ISSET(i, &ready_sockets))
 			{
 				//	If it is a server, we try to accept the connection.
-				if (isServerSocket(i))
+				if (is_server_socket(i))
 				{
 					client_socket = accept(i, (struct sockaddr*)&client_addr, (socklen_t*)&addr_size);
 					{
@@ -168,15 +140,11 @@ int Server::run(std::string FileConf)
 						FD_SET(client_socket, &current_sockets);
 					}
 				}
-				//	Else, we handle the connection.
+				//	Else, we handle the connection and close it.
 				else
 				{
-					read = read_connection(i);
-					if (read == 0)
-					{
-						handle_connection(i, FileConf);
-						FD_CLR(i, &current_sockets);
-					}
+					handle_connection(i, response);
+					FD_CLR(i, &current_sockets);
 				}
 			}
 		}

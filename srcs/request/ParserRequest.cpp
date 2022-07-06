@@ -6,21 +6,14 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/06/10 15:33:38 by fejjed           ###   ########.fr       */
+/*   Updated: 2022/07/06 11:33:00 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-
-
 #include "ParserRequest.hpp"
-#include <sys/socket.h>
 
 ParserRequest::ParserRequest(const char *buffer)
 {
-	// char	buffer[1024];
-
-	// if (read(fdConnection, buffer, 1024) == -1)
-	// 	throw std::runtime_error("Unable to read connection :" + std::to_string(fdConnection));
 	m_request = buffer;
 	parse();
 }
@@ -71,7 +64,14 @@ void	ParserRequest::addMethod(std::stringstream& ss, std::string& word)
 
 void	ParserRequest::addHost(std::stringstream& ss)
 {
-	ss >> m_rm.host;
+	std::string	word;
+	size_t		double_dot;
+
+	ss >> word;
+	double_dot = word.find(":");
+	m_rm.host = word.substr(0, double_dot);
+	m_rm.port = atoi(word.substr(double_dot + 1, word.size()).c_str());
+	m_rm.host = word;
 }
 
 void	ParserRequest::addContentLength(std::stringstream& ss)
@@ -87,12 +87,12 @@ std::ostream&	operator<<(std::ostream &ostr, ParserRequest& pr)
 	RequestMembers	rm = pr.getRequest();
 	std::string		str = pr.getRequestStr();
 
-	std::cout << "REQUEST : \n" << str << std::endl;
-	// std::cout << "PARSING : \n";
-	// ostr << "Method : " << rm.method << std::endl;
-	// ostr << "Location : " << rm.location << std::endl;
-	// ostr << "Protocol : " << rm.protocol << std::endl;
-	// ostr << "Host : " << rm.host << std::endl;
-	// ostr << "Content length : " << rm.content_length << std::endl;
+	ostr << "REQUEST : \n" << str << std::endl;
+	ostr << "PARSING : \n";
+	ostr << "Method : " << rm.method << std::endl;
+	ostr << "Location : " << rm.location << std::endl;
+	ostr << "Protocol : " << rm.protocol << std::endl;
+	ostr << "Host : " << rm.host << std::endl;
+	ostr << "Content length : " << rm.content_length << std::endl;
 	return (ostr);
 }

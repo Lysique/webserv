@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:17 by tamighi           #+#    #+#             */
-/*   Updated: 2022/06/22 16:43:29 by fejjed           ###   ########.fr       */
+/*   Updated: 2022/07/06 11:32:16 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ struct RequestMembers
 	std::string	location;
 	std::string	protocol;
 	std::string	host;
+	int			port;
 	size_t		content_length;
 };
 
