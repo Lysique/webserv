@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/05 11:34:22 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/06 13:32:28 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/07 10:45:04 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,6 @@ public:
 
 	void	manage_request(RequestMembers r);
 private:
-
 	//	Private functions
 	void	write_response(void);
 

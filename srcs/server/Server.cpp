@@ -18,14 +18,14 @@ Server::Server(std::vector<ServerMembers> &a)
 	for (size_t i = 0; i < servers.size(); ++i)
 	{
 		fd = create_server(servers[i].port, servers[i].host); 
-		NewFds.push_back(fd);
+		server_sockets.push_back(fd);
 	}
 }
 
 Server::~Server(void)
 {
-	for (size_t i = 0; i < NewFds.size(); i++)
-		close(NewFds[i]);
+	for (size_t i = 0; i < server_sockets.size(); i++)
+		close(server_sockets[i]);
 }
 
 int Server::create_server(int iport, std::string host)
@@ -39,7 +39,6 @@ int Server::create_server(int iport, std::string host)
 		throw std::runtime_error("Socket failed.");
 	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Fcntl failed.");
-
 
 	//	Allow the port to be reusable when restarting
 	int reuse = 1;
@@ -62,20 +61,23 @@ bool	Server::is_server_socket(int socket)
 {
 	for (size_t i = 0; i < servers.size(); ++i)
 	{
-		if (NewFds[i] == socket)
+		if (server_sockets[i] == socket)
 			return (true);
 	}
 	return (false);
 }
 
-void	Server::handle_connection(int socket, ResHandler response)
+void	Server::handle_connection(int socket, ResponseHandler response)
 {
-	char	buffer[DATA_BUFFER + 1];
-	int		ret;
+	char		buffer[DATA_BUFFER + 1];
+	int			ret;
+	std::string	http_response;
 
 	//	Read connection from socket
 	memset(buffer, 0, DATA_BUFFER);
 	ret = read(socket, buffer, DATA_BUFFER);
+
+	std::cout << buffer << std::endl;
 	if (ret == -1)
 		throw std::runtime_error("Read failed.");
 
@@ -87,35 +89,33 @@ void	Server::handle_connection(int socket, ResHandler response)
 	}
 
 	//	Else handle the request.
-	
-	//	Store request XX
-	response.MainServer.bando = buffer;
 
-	//	Get a response
+	//	Parse request and manage response
 	ParserRequest pr(buffer);
-	response.manage_request(pr.getRequest());
+	http_response = response.manage_request(pr.getRequest());
 
-	//	TO CHECK
-	write(socket, response.TheReposn.c_str(), (response.TheReposn.size() + 1));
-	close(socket);
-	//	FCNTL flag interdit
-	//fcntl(socket, F_SETFD, FD_CLOEXEC);
-	response.TheReposn = "";
+	//	Send the response to the client_socket
+	ret = write(socket, http_response.c_str(), http_response.size());
+	if (ret == -1)
+		throw std::runtime_error("Write failed.");
+	//	If ret is 0, it means that the client disconnected.
+	//	We close the connection in any case so nothing to do here.
 }
 
-int Server::run()
+void Server::run()
 {
-	fd_set		current_sockets, ready_sockets;
-	int			client_socket;
-	ResHandler	response(servers);
+	fd_set			current_sockets, ready_sockets;
+	int				client_socket;
+	ResponseHandler	response(servers);
 
+	//	Empty variables needed for accept
 	struct sockaddr_in	client_addr;
 	int	addr_size = sizeof(socklen_t);
 
-	//	Init current_sockets
+	//	Init current_sockets with server sockets
 	FD_ZERO(&current_sockets);
-	for (size_t i = 0; i < NewFds.size(); ++i)
-		FD_SET(NewFds[i], &current_sockets);
+	for (size_t i = 0; i < server_sockets.size(); ++i)
+		FD_SET(server_sockets[i], &current_sockets);
 
 	while (1)
 	{
@@ -125,29 +125,30 @@ int Server::run()
 		if (select(FD_SETSIZE, &ready_sockets, NULL, NULL, NULL) < 0)
 			throw std::runtime_error("Select failed.");
 
-		//	Accept connection
-		for (int i = 0; i < FD_SETSIZE; ++i)
+		//	Select returned ; a socket is ready to be read
+		for (int fd = 0; fd < FD_SETSIZE; ++fd)
 		{
-			if (FD_ISSET(i, &ready_sockets))
+			//	Check if is in the list of fd returned by select
+			if (FD_ISSET(fd, &ready_sockets))
 			{
-				//	If it is a server, we try to accept the connection.
-				if (is_server_socket(i))
+				//	If it is a server, we accept the connection.
+				if (is_server_socket(fd))
 				{
-					client_socket = accept(i, (struct sockaddr*)&client_addr, (socklen_t*)&addr_size);
-					{
-						if (client_socket == -1)
-							throw std::runtime_error("Accept failed.");
-						FD_SET(client_socket, &current_sockets);
-					}
+					client_socket = accept(fd, (struct sockaddr*)&client_addr, (socklen_t*)&addr_size);
+					std::cout << "Client accepted : " << client_socket << "\n";
+					if (client_socket == -1)
+						throw std::runtime_error("Accept failed.");
+					FD_SET(client_socket, &current_sockets);
 				}
 				//	Else, we handle the connection and close it.
 				else
 				{
-					handle_connection(i, response);
-					FD_CLR(i, &current_sockets);
+					std::cout << "Handle Request\n";
+					handle_connection(fd, response);
+					FD_CLR(fd, &current_sockets);
+					close(fd);
 				}
 			}
 		}
 	}
-	return (0);
 }

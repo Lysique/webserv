@@ -4,8 +4,10 @@ CGI::CGI() {}
 
 CGI::~CGI() {}
 
+//	En gros si possible me dire ce que tu as besoin pour les cgi (location, exec, postname, postvalue servent a quoi ?)
 std::string CGI::cgiExecute(std::string location, std::string executable ,std::string	postname[], std::string	postvalue[], int j,std::string m_request)
 {
+	//	Je comprends pas trop ce que ce bloc fait, pourquoi commencer a 1 ? C'est quoi j ?
     std::vector<std::string> env;
     std::string content = m_request;
     std::string combine[10000];
@@ -57,7 +59,7 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
     pid_t parent = 0;
 
 
-	// ??
+	// Ce bloc sert a quoi ?
 	int checke_prob = 0;
     int fd = open("tmp", O_CREAT | O_TRUNC | O_WRONLY | O_NONBLOCK, 0777);
     int checke_Cwrite = write(fd, content.c_str(), content.size());
@@ -79,12 +81,13 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
 
     size_t i = 0;
 
-	//	env sert a quoi ??
+	//	env + yes variables servent a quoi ?
     char **yes = new char *[env.size() + 1];
 
     for (; i != env.size(); i++)
         yes[i] = (char *)env.at(i).c_str();
     yes[i] = NULL;
+
 
     char *echo[3] = {(char *)"cat", (char *)"tmp", NULL};
     //char *cmd[] = {path, (char *)location.c_str(), NULL};

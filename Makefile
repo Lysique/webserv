@@ -24,10 +24,8 @@ OBJS =  $(SRCS_OBJS) $(CONFIG_OBJS)  $(REQUEST_OBJS)  $(RESPON_OBJS) $(UTILS_OBJ
 
 SRCS_DIR = srcs/
 SRCS_FILES = main.cpp 
-SRCS_HEADERS = 
 
 SRCS_SRCS = $(addprefix $(SRCS_DIR), $(SRCS_FILES))
-SRCS_INCLUDES = $(addprefix $(SRCS_DIR), $(SRCS_HEADERS))
 SRCS_OBJS = $(addprefix $(OBJ_DIR), $(SRCS_FILES:.cpp=.o))
 
 $(OBJ_DIR)%.o: $(SRCS_DIR)%.cpp
@@ -92,9 +90,9 @@ $(OBJ_DIR)%.o: $(REQUEST_DIR)%.cpp
 
 #### RESPON FILES
 
-RESPON_DIR = srcs/Respon/
-RESPON_FILES = ResHandler.cpp
-RESPON_HEADERS = ResHandler.hpp
+RESPON_DIR = srcs/response/
+RESPON_FILES = ResponseHandler.cpp
+RESPON_HEADERS = ResponseHandler.hpp
 
 RESPON_SRCS = $(addprefix $(RESPON_DIR), $(RESPON_FILES))
 RESPON_INCLUDES = $(addprefix $(RESPON_DIR), $(RESPON_HEADERS))

@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/03 14:28:52 by tamighi           #+#    #+#             */
-/*   Updated: 2022/06/27 14:17:28 by fejjed           ###   ########.fr       */
+/*   Updated: 2022/07/07 17:25:26 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,7 @@ void	ParserConfig::parse(void)
 			parseLocationCtx(line);
 	}
 	if (m_ctx != MAIN)
-		throw std::runtime_error("Expected  '}' on line : " + std::to_string(m_curr_line));
+		throw std::runtime_error("Expected  '}' on line : " + std::to_string(m_curr_line + 1));
 	if (m_cms.empty())
 		throw std::runtime_error("File is empty");
 }
@@ -148,10 +148,7 @@ void	ParserConfig::parseLocationCtx(std::string& line)
 void	ParserConfig::endScope(void)
 {
 	if (m_ctx == SERVER)
-	{
-		addDefaultServerValues();
 		m_ctx = MAIN;
-	}
 	else if (m_ctx == LOCATION)
 		m_ctx = SERVER;
 	else
@@ -241,6 +238,7 @@ void	ParserConfig::addRoot(std::stringstream& ss, ConfigMembers& cm)
 void	ParserConfig::addIndex(std::stringstream& ss, ConfigMembers& cm)
 {
 	std::string		word;
+	cm.index.clear();
 
 	while (ss >> word)
 		cm.index.push_back(word);
@@ -339,21 +337,21 @@ void	ParserConfig::addLocation(std::stringstream& ss, ServerMembers& sm)
 void	ParserConfig::addAllowedMethods(std::stringstream& ss, LocationMembers& lm)
 {
 	std::string	word;
+	lm.allowedMethods.clear();
 
 	while (ss >> word)
 	{
 		if (!Utils::isValidMethod(word))
 			throw std::runtime_error("Unexpected argument '" + word + "' on line : " + std::to_string(m_curr_line));
-		lm.allowedMethods.insert(word);
+		for (size_t i = 0; i < lm.allowedMethods.size(); ++i)
+		{
+			if (lm.allowedMethods[i] == word)
+				throw std::runtime_error("Method '" + word + "' declared multiple times on line : " + std::to_string(m_curr_line));
+		}
+		lm.allowedMethods.push_back(word);
 	}
 	if (lm.allowedMethods.empty())
 		throw std::runtime_error("Expected methods argument on line : " + std::to_string(m_curr_line));
-}
-
-void	ParserConfig::addDefaultServerValues(void)
-{
-	if (m_cms.back().server_name.empty())
-		m_cms.back().server_name.push_back("");
 }
 
 std::ostream&	operator<<(std::ostream &ostr, ParserConfig& pc)
@@ -419,6 +417,18 @@ std::ostream&	operator<<(std::ostream &ostr, ParserConfig& pc)
 	return (ostr);
 }
 
+ConfigMembers::ConfigMembers(void)
+	: root(""), max_body_size(1000000000), autoindex(false)	
+{
+	std::string	path_to_error_files = "/files/error_files/";
+
+	this->error_pages[403] = path_to_error_files + "403.html";
+	this->error_pages[404] = path_to_error_files + "404.html";
+	this->error_pages[405] = path_to_error_files + "405.html";
+	this->error_pages[413] = path_to_error_files + "413.html";
+	this->error_pages[501] = path_to_error_files + "501.html";
+}
+
 ServerMembers::ServerMembers(const ServerMembers& cpy)
 {
 	*this = cpy;
@@ -432,6 +442,13 @@ LocationMembers::LocationMembers(const LocationMembers& cpy)
 LocationMembers::LocationMembers(const ServerMembers& cpy)
 {
 	this->root = cpy.root;
-	this->autoindex = cpy.autoindex;
 	this->max_body_size = cpy.max_body_size;
+	this->error_pages = cpy.error_pages;
+	this->autoindex = cpy.autoindex;
+	this->index = cpy.index;
+	this->cgis = cpy.cgis;
+
+	this->allowedMethods.push_back("GET");
+	this->allowedMethods.push_back("POST");
+	this->allowedMethods.push_back("DELETE");
 }

@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/03 14:28:49 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/05 12:35:27 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/07 17:01:16 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,10 +23,7 @@
 
 struct ConfigMembers
 {
-	ConfigMembers(void)
-		: root(""), max_body_size(1000000000), autoindex(false)	
-	{
-	}
+	ConfigMembers(void);
 
 	std::string							root;
 	size_t								max_body_size;
@@ -67,7 +64,7 @@ struct LocationMembers : public ConfigMembers
 	LocationMembers(const LocationMembers& cpy);
 
 	std::string					uri;
-	std::set<std::string>		allowedMethods;
+	std::vector<std::string>	allowedMethods;
 };
 
 class ParserConfig
@@ -110,8 +107,6 @@ private:
 
 	//	Location functions
 	void	addAllowedMethods(std::stringstream& ss, LocationMembers& lm);
-
-	void	addDefaultServerValues(void);
 
 	//	Private classes/structs
 	enum Context

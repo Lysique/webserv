@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/05 11:35:33 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/06 15:03:21 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/07 14:12:06 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -265,6 +265,7 @@ int ResHandler::filexist(const char *fileName)
 			MainServer.code = 404;
 		return MainServer.code;
 	}
+	//	Autoindex here -> if server has autoindex and there is no file + GET -> Add html to the http response ?
 	else if (CheckifPathisFile(fileName) == false && MainServer.type == "GET" && autoindx[atoi(MainServer.host.substr(MainServer.host.find(":") + 1).c_str())] == 1)
 	{
 		MainServer.http += FautoIndex(fileName);
@@ -302,7 +303,7 @@ void	check_path(std::string path)
 	struct stat	s;
 
 
-	if (stat(path, &s) == 0)
+	if (stat(path.c_str(), &s) == 0)
 	{
 		if (s.st_mode & S_IFREG)
 			std::cout << "FILE\n";
@@ -314,23 +315,22 @@ void	check_path(std::string path)
 
 int ResHandler::GetMethodes(void)
 {
-	//	Need to check path
-	
 	//	Weird realpath stuff here
 	std::string raw_path = realpath(".", NULL);
 
 	std::string path = realpath(".", NULL) + removeAll(MainServer.path, realpath(".", NULL));
 
-	std::cout << MainServer.path << std::endl;
 	MainServer.path = path + "/";
 
-	//	Content type
+	std::cout << MainServer.path << std::endl;
+
+	//	Assign content type + cgitype -> big ugly function
 	GetContent_Type(path);
 
-	//	Check if file exist
+	//	Check if file exist HERE NOW
 	filexist(path.c_str());
 
-	check_path(path);
+	//check_path(path);
 	//	Error page
 	ErrorPage();
 

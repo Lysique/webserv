@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/06 10:00:40 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/07 10:51:54 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,12 +23,12 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include "../config/ParserConfig.hpp"
-#include "../Respon/ResHandler.hpp"
+#include "../response/ResponseHandler.hpp"
 #include "../request/ParserRequest.hpp"
 
 #define DATA_BUFFER 800000
 
-class ResHandler;
+class ResponseHandler;
 
 class Server
 {
@@ -39,19 +39,19 @@ public:
 	Server(std::vector<ServerMembers> &a);
 	~Server(void);
 
-	int	run();
+	void	run();
 
 private:
 
 	//	Private functions
 	int		create_server(int iport, std::string host);
-	void	handle_connection(int socket, ResHandler response);
+	void	handle_connection(int socket, ResponseHandler response);
 
 	bool	is_server_socket(int socket);
 
 	//	Private members
-	std::vector<ServerMembers> servers;
-	std::vector<int>			NewFds;
+	std::vector<ServerMembers>	servers;
+	std::vector<int>			server_sockets;
 };
 
 #endif
