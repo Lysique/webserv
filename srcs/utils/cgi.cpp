@@ -8,7 +8,9 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
     code = 500;
     std::vector<std::string> env;
     std::string content = m_request;
+    //new combine avec j elem;
     std::string combine[10000];
+    //on part de lindice 0 svp
     for (int nm = 1; nm != j+1 ; nm++)
         combine[nm] = postname[nm]+ "=" + postvalue[nm];
     char cwd[256];
@@ -16,10 +18,10 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
         combine[nm] = postname[nm]+ "=" + postvalue[nm];
     if (getcwd(cwd, sizeof(cwd)) == NULL)
     {
-        perror("getcwd() error");
-        exit(1);
+        std::cerr << "Cgi can't get cwd" << std::endl;
+		return ("Status: 500\r\n\r\n");
     }
-
+    //variable useless
     env.push_back("CONTENT_TYPE text/html");
     env.push_back("DOCUMENT_ROOT");
     env.push_back("CONTENT_LENGTH");
@@ -55,21 +57,26 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
     int ret = 0;
     pid_t child = 0;
     pid_t parent = 0;
-	int checke_prob = 0;
     int fd = open("tmp", O_CREAT | O_TRUNC | O_WRONLY | O_NONBLOCK, 0777);
+    if (fd < 0)
+    {
+        std::cerr << "Cgi open failed" << std::endl;
+		return ("Status: 500\r\n\r\n");
+    }
 
     int checke_Cwrite = write(fd, content.c_str(), content.size());
-	if (checke_Cwrite == 0)
-	{
-		checke_prob = 0;
-	}
-	else if (checke_Cwrite == -1)
-	{
-		checke_prob = -1;
-	}
+    if (checke_Cwrite < 0)
+    {
+        std::cerr << "Cgi can't write" << std::endl;
+		return ("Status: 500\r\n\r\n");
+    }
 
+    if (close(fd) < 0)
+    {
+        std::cerr << "Cgi can't close" << std::endl;
+		return ("Status: 500\r\n\r\n");
+    }
 
-    close(fd);
     size_t i = 0;
 
     char **yes = new char *[env.size() + 1];
@@ -79,16 +86,19 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
     yes[i] = NULL;
 
     char *echo[3] = {(char *)"cat", (char *)"tmp", NULL};
-    //char *cmd[] = {path, (char *)location.c_str(), NULL};
     char *cmd[] =  {&location[0], &executable[0], NULL};
     if (pipe(pip) == -1)
     {
-        perror("CGI part : Pipe failed");
-        exit(1);
+        std::cerr << "Cgi pipe failed" << std::endl;
+		return ("Status: 500\r\n\r\n");
     }
     child = fork();
     int tmp = open(".tmp", O_CREAT | O_TRUNC | O_NONBLOCK | O_RDWR, 0777);
-
+    if (tmp < 0)
+    {
+        std::cerr << "Cgi can't create tmp" << std::endl;
+		return ("Status: 500\r\n\r\n");
+    }
     if (child == -1)
     {
         std::cerr << "Fork failed" << std::endl;
@@ -96,9 +106,19 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
     }
     else if (!child)
     {
-        dup2(pip[1], 1);
-        close(pip[0]);
+        if (dup2(pip[1], 1) < 0)
+        {
+            std::cerr << "Cgi can't dup" << std::endl;
+		    return ("Status: 500\r\n\r\n");
+        }
+        if (close(pip[0]) < 0)
+        {
+            std::cerr << "Cgi can't close" << std::endl;
+		    return ("Status: 500\r\n\r\n");;
+        }
         ret = execvp(echo[0], echo);
+        std::cerr << "Cgi can't exec" << std::endl;
+		return ("Status: 500\r\n\r\n");
     }
     else
     {
@@ -106,38 +126,86 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
 
         wait(&status2);
         parent = fork();
+        if (parent == -1)
+        {
+            std::cerr << "Fork failed" << std::endl;
+            return ("Status: 500\r\n\r\n");
+        }
         if (!parent)
         {
-            dup2(pip[0], 0);
-            dup2(tmp, 1);
-            close(pip[1]);
+            if (dup2(pip[0], 0) < 0)
+            {
+                std::cerr << "Cgi can't dup" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
+            if (dup2(tmp, 1) < 0)
+            {
+                std::cerr << "Cgi can't dup" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
+            if (close(pip[1]) < 0)
+            {
+                perror("CGI part : can't close file");
+                exit(1);
+            }
             ret = execve(cmd[0], cmd, yes);
+            std::cerr << "Cgi can't exec" << std::endl;
+		    return ("Status: 500\r\n\r\n");
         }
         else
         {
             int status;
 
             wait(&status);
-            close(pip[0]);
-            close(pip[1]);
-            close(tmp);
+            if (close(pip[0]) < 0)
+            {
+                std::cerr << "Cgi can't close" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
+            if (close(pip[1]) < 0)
+            {
+                std::cerr << "Cgi can't close" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
+            if (close(tmp) < 0)
+            {
+                std::cerr << "Cgi can't close" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
 
             usleep(100000);
 
             tmp = open(".tmp", O_NONBLOCK | O_RDONLY);
+            if (tmp < 0)
+            {
+                std::cerr << "Cgi can't create tmp" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
 
             char buf[65535];
             bzero(buf, 65535);
             int checkRead = read(tmp, buf, 65535);
-			if (checkRead == 0)
-				checke_prob = 0;
-			else if (checkRead == -1)
-				checke_prob = -1;
-            close(tmp);
+            if (checkRead < 0)
+            {
+                std::cerr << "Cgi can't read tmp" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
+            if (close(tmp) < 0)
+            {
+                std::cerr << "Cgi can't close" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
             content = std::string(buf);
-            remove("tmp");
-            remove(".tmp");
-
+            if (remove("tmp") != 0)
+            {
+                std::cerr << "Cgi can't remove" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
+            if (remove(".tmp") != 0)
+            {
+                std::cerr << "Cgi can't remove" << std::endl;
+		        return ("Status: 500\r\n\r\n");
+            }
             delete[] yes;
             return (content);
         }
