@@ -8,9 +8,9 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
     code = 500;
     std::vector<std::string> env;
     std::string content = m_request;
-    //new combine avec j elem;
+
     std::string combine[10000];
-    //on part de lindice 0 svp
+ 
     for (int nm = 1; nm != j+1 ; nm++)
         combine[nm] = postname[nm]+ "=" + postvalue[nm];
     char cwd[256];
@@ -21,7 +21,7 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
         std::cerr << "Cgi can't get cwd" << std::endl;
 		return ("Status: 500\r\n\r\n");
     }
-    //variable useless
+
     env.push_back("CONTENT_TYPE text/html");
     env.push_back("DOCUMENT_ROOT");
     env.push_back("CONTENT_LENGTH");
@@ -64,8 +64,7 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
 		return ("Status: 500\r\n\r\n");
     }
 
-    int checke_Cwrite = write(fd, content.c_str(), content.size());
-    if (checke_Cwrite < 0)
+    if (write(fd, content.c_str(), content.size()) < 0)
     {
         std::cerr << "Cgi can't write" << std::endl;
 		return ("Status: 500\r\n\r\n");
