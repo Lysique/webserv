@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/06 11:33:00 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/11 16:45:35 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,14 @@ void	ParserRequest::parse(void)
 	std::string			line;
 
 	while (std::getline(ss, line))
+	{
 		parseLine(line);
+		if (line == "\r")
+		{
+			std::getline(ss, line);
+			parsePostvals(line);
+		}
+	}
 }
 
 void	ParserRequest::parseLine(std::string& line)
@@ -53,6 +60,25 @@ void	ParserRequest::parseLine(std::string& line)
 		addHost(ss);
 	else if (word == "Content-Length:")
 		addContentLength(ss);
+}
+
+void	ParserRequest::parsePostvals(std::string& line)
+{
+	std::string	key;
+	std::string	value;
+	size_t		equal;
+	size_t		next = 0;
+
+	while (next != std::string::npos)
+	{
+		equal = line.find("=");
+		next = line.find("&");
+
+		key = line.substr(0, equal);
+		value = line.substr(equal + 1, next - (equal + 1));
+		m_rm.postvals[key] = value;
+		line = line.substr(next + 1, line.size());
+	}
 }
 
 void	ParserRequest::addMethod(std::stringstream& ss, std::string& word)

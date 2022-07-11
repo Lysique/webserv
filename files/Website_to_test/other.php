@@ -4,8 +4,6 @@
 </head>
 <body>
 <?php
-// $first_name = htmlspecialchars($value['fname']);
-// $last_name = htmlspecialchars($value['lname']);
 echo getenv('SHELL');
 echo "<h2>First Name " . getenv('fname')  . "</h2>";
 echo "<h2>Last name " . getenv('lname')  . "</h2>";

@@ -77,7 +77,6 @@ void	Server::handle_connection(int socket, ResponseHandler response)
 	memset(buffer, 0, DATA_BUFFER);
 	ret = read(socket, buffer, DATA_BUFFER);
 
-	std::cout << buffer << std::endl;
 	if (ret == -1)
 		throw std::runtime_error("Read failed.");
 
