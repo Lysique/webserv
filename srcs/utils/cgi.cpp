@@ -4,8 +4,7 @@ CGI::CGI() {}
 
 CGI::~CGI() {}
 
-std::string CGI::cgiExecute(std::string location, std::string executable ,std::string	postname[], std::string	postvalue[], int j,std::string m_request, int code){
-    code = 500;
+std::string CGI::cgiExecute(std::string location, std::string executable ,std::string	postname[], std::string	postvalue[], int j,std::string m_request){
     std::vector<std::string> env;
     std::string content = m_request;
 
@@ -13,46 +12,16 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
  
     for (int nm = 1; nm != j+1 ; nm++)
         combine[nm] = postname[nm]+ "=" + postvalue[nm];
+
     char cwd[256];
-    for (int nm = 1; nm != j+1 ; nm++)
-        combine[nm] = postname[nm]+ "=" + postvalue[nm];
     if (getcwd(cwd, sizeof(cwd)) == NULL)
     {
         std::cerr << "Cgi can't get cwd" << std::endl;
 		return ("Status: 500\r\n\r\n");
     }
 
-    env.push_back("CONTENT_TYPE text/html");
-    env.push_back("DOCUMENT_ROOT");
-    env.push_back("CONTENT_LENGTH");
-    
-    env.push_back("HTTP_COOKIE = none");
-    env.push_back("HTTP_HOST = off");
-    env.push_back("HTTP_REFERER");
-    env.push_back("HTTP_USER_AGENT");
-    env.push_back("HTTPS = off");
-    env.push_back("PATH" + std::string(cwd));
-    env.push_back("QUERY_STRING");
-    
-    env.push_back("REMOTE_ADDR");
-    env.push_back("REMOTE_HOST");
-    env.push_back("REMOTE_PORT");
-    env.push_back("REMOTE_USER");
-    env.push_back("REQUEST_METHOD");
-    env.push_back("REQUEST_URI" + std::string(cwd));
-    
-    env.push_back("SCRIPT_FILENAME" ); 
-    env.push_back("SCRIPT_NAME");
-    
-    env.push_back("SERVER_ADMIN");
-    env.push_back("SERVER_NAME");
-    env.push_back("SERVER_PORT");
-    env.push_back("SERVER_SOFTWARE");
-    env.push_back("SERVER_PROTOCOL=HTTP/1.1");
-
     for (int k = 1; k != j+1 ; k++)
         env.push_back(combine[k]);
-    env.push_back("REDIRECT_STATeeUS=200");
     int pip[2];
     int ret = 0;
     pid_t child = 0;
@@ -205,8 +174,6 @@ std::string CGI::cgiExecute(std::string location, std::string executable ,std::s
                 std::cerr << "Cgi can't remove" << std::endl;
 		        return ("Status: 500\r\n\r\n");
             }
-            delete[] yes;
-            return (content);
         }
     }
 

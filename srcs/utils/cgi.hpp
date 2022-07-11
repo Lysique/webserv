@@ -19,7 +19,7 @@ class CGI{
         CGI();
         ~CGI();
 
-        std::string cgiExecute(std::string location, std::string executable ,std::string	postname[], std::string	postvalue[], int j,std::string m_request, int code);
+        std::string cgiExecute(std::string location, std::string executable ,std::string	postname[], std::string	postvalue[], int j,std::string m_request);
 };
 
 #endif

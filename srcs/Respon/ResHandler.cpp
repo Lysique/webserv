@@ -237,19 +237,19 @@ int ResHandler::filexist(const char *fileName)
 			MainServer.http = test.str();
 			if (MainServer.cgitype == "py" && MainServer.mp[".py"].find("/usr/bin/python") != std::string::npos)
 			{
-				MainServer.http = g.cgiExecute("/usr/bin/python", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando, MainServer.code);
+				MainServer.http = g.cgiExecute("/usr/bin/python", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando);
 				MainServer.code = 200;
 				return MainServer.code;
 			}
 			else if (MainServer.cgitype == "pl" && MainServer.mp[".pl"].find("/usr/bin/perl") != std::string::npos)
 			{
-				MainServer.http = g.cgiExecute("/usr/bin/perl", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando, MainServer.code);
+				MainServer.http = g.cgiExecute("/usr/bin/perl", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando);
 				MainServer.code = 200;
 				return MainServer.code;
 			}
 			else if (MainServer.cgitype == "php" && MainServer.mp[".php"].find("/usr/bin/php") != std::string::npos)
 			{
-				MainServer.http = g.cgiExecute("/usr/bin/php", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando, MainServer.code);
+				MainServer.http = g.cgiExecute("/usr/bin/php", fileName, MainServer.postname, MainServer.postvalue, 0, MainServer.bando);
 				MainServer.code = 200;
 				return MainServer.code;
 			}
@@ -462,9 +462,9 @@ int ResHandler::POSTMethodes()
 	ParseQueryString_(MainServer.bando.substr(MainServer.bando.find("\r\n\r\n") + strlen("\r\n\r\n")));
 	GetContent_Type(path);
 	if (MainServer.path.substr(MainServer.path.find_last_of(".") + 1) == "php")
-		MainServer.http = g.cgiExecute("/usr/bin/php", path.c_str(), MainServer.postname, MainServer.postvalue, MainServer.envj, MainServer.bando, MainServer.code);
+		MainServer.http = g.cgiExecute("/usr/bin/php", path.c_str(), MainServer.postname, MainServer.postvalue, MainServer.envj, MainServer.bando);
 	if (MainServer.path.substr(MainServer.path.find_last_of(".") + 1) == "py")
-		MainServer.http = g.cgiExecute("/usr/bin/python", path.c_str(), MainServer.postname, MainServer.postvalue, MainServer.envj, MainServer.bando, MainServer.code);
+		MainServer.http = g.cgiExecute("/usr/bin/python", path.c_str(), MainServer.postname, MainServer.postvalue, MainServer.envj, MainServer.bando);
 	bool upload = false;
 	if (MainServer.content_len <= MainServer.max_body)
 	{
