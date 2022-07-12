@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:17 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/11 16:29:09 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/12 09:17:59 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,22 +16,24 @@
 #include <iostream>
 #include <sstream>
 #include <unistd.h>
+#include <fcntl.h>
 #include <map>
+#include <vector>
 #include "../utils/Utils.hpp"
 
 struct RequestMembers
 {
 	RequestMembers(void)
-		: content_length(0)
 	{
 	}
+	std::vector<std::string>			env;
 	std::map<std::string, std::string>	postvals;
+
 	std::string							method;
 	std::string							location;
 	std::string							protocol;
 	std::string							host;
 	int									port;
-	size_t								content_length;
 };
 
 class ParserRequest
@@ -56,7 +58,6 @@ private:
 	//	Secondary parsing functions
 	void	addMethod(std::stringstream& ss, std::string& word);
 	void	addHost(std::stringstream& ss);
-	void	addContentLength(std::stringstream& ss);
 
 	//	Private members
 	RequestMembers	m_rm;

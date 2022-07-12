@@ -82,16 +82,15 @@ void	Server::handle_connection(int socket, ResponseHandler response)
 
 	//	Client closed the connection -> no response needed
 	if (ret == 0)
-	{
-		close(socket);
 		return ;
-	}
 
 	//	Else handle the request.
 
 	//	Parse request and manage response
+	std::cout << buffer << std::endl;
 	ParserRequest pr(buffer);
 	http_response = response.manage_request(pr.getRequest());
+	std::cout << http_response << std::endl;
 
 	//	Send the response to the client_socket
 	ret = write(socket, http_response.c_str(), http_response.size());

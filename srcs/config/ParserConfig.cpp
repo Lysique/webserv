@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/03 14:28:52 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/07 17:25:26 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/12 09:31:16 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -108,8 +108,6 @@ void	ParserConfig::parseServerCtx(std::string& line)
 		addCgis(ss, sm);
 	else if (word == "redirect")
 		addRedirect(ss, sm);
-	else if (word == "cgi_path")
-		addCgiPaths(ss, sm);
 	else if (word == "upload")
 		addUpload(ss, sm);
 	else
@@ -199,18 +197,6 @@ void	ParserConfig::addRedirect(std::stringstream& ss, ServerMembers& sm)
 	sm.redirect = word;
 	if (ss >> word)
 		throw std::runtime_error("Unexpected argument '" + word + "' on line : " + std::to_string(m_curr_line));
-}
-
-void	ParserConfig::addCgiPaths(std::stringstream& ss, ServerMembers& sm)
-{
-	std::string	ext;
-	std::string	path;
-
-	if (!(ss >> ext) || !(ss >> path))
-		throw std::runtime_error("Expected cgi path argument on line : " + std::to_string(m_curr_line));
-	sm.cgi_paths[ext] = path;
-	if (ss >> path)
-		throw std::runtime_error("Unexpected argument '" + path + "' on line : " + std::to_string(m_curr_line));
 }
 
 void	ParserConfig::addUpload(std::stringstream& ss, ServerMembers& sm)
@@ -305,11 +291,11 @@ void	ParserConfig::addAutoIndex(std::stringstream& ss, ConfigMembers& cm)
 void	ParserConfig::addCgis(std::stringstream& ss, ConfigMembers& cm)
 {
 	std::string	ext;
-	std::string	phpFile;
+	std::string	path;
 
-	if (!(ss >> ext) || !(ss >> phpFile))
+	if (!(ss >> ext) || !(ss >> path))
 		throw std::runtime_error("Expected cgi argument on line : " + std::to_string(m_curr_line));
-	cm.cgis[ext] = phpFile;
+	cm.cgis[ext] = path;
 	if (ss >> ext)
 		throw std::runtime_error("Unexpected argument '" + ext + "' on line : " + std::to_string(m_curr_line));
 }
@@ -379,10 +365,6 @@ std::ostream&	operator<<(std::ostream &ostr, ParserConfig& pc)
 			ostr << "false" << std::endl;
 		ostr << "Cgis params : ";
 		for (std::map<std::string, std::string>::iterator namesIt = it->cgis.begin(); namesIt != it->cgis.end(); ++namesIt)
-			ostr << "'" << namesIt->first << "' : '" << namesIt->second << "'. ";
-		ostr << "\n";
-		ostr << "Cgis paths : ";
-		for (std::map<std::string, std::string>::iterator namesIt = it->cgi_paths.begin(); namesIt != it->cgi_paths.end(); ++namesIt)
 			ostr << "'" << namesIt->first << "' : '" << namesIt->second << "'. ";
 		ostr << "\n";
 		ostr << "Upload : " << it->upload << std::endl;

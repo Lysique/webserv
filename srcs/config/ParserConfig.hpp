@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/03 14:28:49 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/07 17:01:16 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/12 09:24:01 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,6 @@ struct ServerMembers : public ConfigMembers
 	std::vector<LocationMembers>		locations;
 	std::vector<std::string>			server_name;
 
-	std::map<std::string, std::string>	cgi_paths;
 	std::string							upload;
 	std::string							redirect;
 };
@@ -102,7 +101,6 @@ private:
 	void	addLocation(std::stringstream& ss, ServerMembers& sm);
 	void	addServerName(std::stringstream& ss, ServerMembers& sm);
 	void	addRedirect(std::stringstream& ss, ServerMembers& sm);
-	void	addCgiPaths(std::stringstream& ss, ServerMembers& sm);
 	void	addUpload(std::stringstream& ss, ServerMembers& sm);
 
 	//	Location functions

@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/11 16:45:35 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/12 09:17:44 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,8 +58,6 @@ void	ParserRequest::parseLine(std::string& line)
 		addMethod(ss, word);
 	else if (word == "Host:")
 		addHost(ss);
-	else if (word == "Content-Length:")
-		addContentLength(ss);
 }
 
 void	ParserRequest::parsePostvals(std::string& line)
@@ -77,6 +75,7 @@ void	ParserRequest::parsePostvals(std::string& line)
 		key = line.substr(0, equal);
 		value = line.substr(equal + 1, next - (equal + 1));
 		m_rm.postvals[key] = value;
+		m_rm.env.push_back(key + "=" + value);
 		line = line.substr(next + 1, line.size());
 	}
 }
@@ -100,14 +99,6 @@ void	ParserRequest::addHost(std::stringstream& ss)
 	m_rm.host = word;
 }
 
-void	ParserRequest::addContentLength(std::stringstream& ss)
-{
-	std::string	word;
-
-	ss >> word;
-	m_rm.content_length = std::stoi(word);
-}
-
 std::ostream&	operator<<(std::ostream &ostr, ParserRequest& pr)
 {
 	RequestMembers	rm = pr.getRequest();
@@ -119,6 +110,5 @@ std::ostream&	operator<<(std::ostream &ostr, ParserRequest& pr)
 	ostr << "Location : " << rm.location << std::endl;
 	ostr << "Protocol : " << rm.protocol << std::endl;
 	ostr << "Host : " << rm.host << std::endl;
-	ostr << "Content length : " << rm.content_length << std::endl;
 	return (ostr);
 }
