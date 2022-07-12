@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/12 09:31:56 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/12 15:09:35 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
  #ifndef RESPONSEHANDLER_HPP
@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <time.h>
 
 class ResponseHandler
@@ -35,6 +36,7 @@ private:
 	std::string	write_response(void);
 	std::string	exec_cgi(std::string file_path, std::string exec_path);
 
+
 	//	Error code management
 	int			check_error_code(std::string &path);
 
@@ -49,6 +51,10 @@ private:
 	//	Headers utils
 	std::string	get_date(void);
 	std::string	get_content_type(std::string file);
+
+	//	Autoindex
+	std::string	dir_to_html(std::string dir_entry, std::string path, std::string host);
+	std::string get_autoindex(std::string path);
 
 	//	Private members
 	std::vector<ServerMembers>	servers;

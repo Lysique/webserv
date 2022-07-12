@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/12 11:31:43 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/12 16:08:48 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,6 +73,7 @@ std::string	ResponseHandler::write_response(void)
 			if (is_file(path))
 				break ;
 		}
+		path = find_file_path(curr_loc.root + request.location);
 	}
 	//	No index needed here
 	else
@@ -81,17 +82,14 @@ std::string	ResponseHandler::write_response(void)
 
 	//	Change error_code and file_path with error page if needed
 	error_code = check_error_code(path);
-	if (error_code == 404 && curr_loc.autoindex == true)
-	{
-		// path = autoindex path
-		path = find_file_path("/autoindex.html");
-		error_code = 200;
-	}
 	if (error_code != 200)
 		path = find_file_path(curr_loc.error_pages[error_code]);
 
-	//	Retrieve the requested file !Check for autoindex (in error response)
-	file = retrieve_file(path);
+	//	Retrieve the requested file
+	if (is_file(path))
+		file = retrieve_file(path);
+	else
+		file = get_autoindex(path);
 
 	//	Check if Payload too large
 	if (file.size() > curr_loc.max_body_size)
@@ -105,7 +103,8 @@ std::string	ResponseHandler::write_response(void)
 	for (std::map<std::string, std::string>::iterator it = curr_loc.cgis.begin();
 			it != curr_loc.cgis.end(); ++it)
 	{
-		if (path.substr(path.rfind('.')) == it->first)
+		size_t	idx = path.rfind('.');
+		if (idx != std::string::npos && path.substr(idx) == it->first)
 			file = exec_cgi(path, it->second);
 	}
 
@@ -153,7 +152,8 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 	else if (pid == 0)
 	{
 		//	Execute command
-		dup2(fd[1], 1);
+		if (dup2(fd[1], 1) == -1)
+			throw std::runtime_error("Dup2 failed.");
 		execve(exec[0], (char **)&exec[0], (char **)&env[0]);
 		exit(0);
 	}
@@ -177,39 +177,22 @@ int	ResponseHandler::check_error_code(std::string &path)
 	if (is_method_implemented())
 	{
 		if (!is_method_allowed())
-		{
-			std::cout << "Not allowed\n";
 			return (405);
-		}
 	}
 	else
-	{
-		std::cout << "Not implemented\n";
 		return (501);
-	}
 	
 	//	Check if we can access to path
 	if (access(path.c_str(), F_OK) < 0)
-	{
-		std::cout << "Not found\n";
 		return (404);
-	}
 
 	//	Check if read access
 	if (access(path.c_str(), R_OK) < 0)
-	{
-		std::cout << "No read access\n";
 		return (403);
-	}
 
 	//	Check if path is a file; if not : autoindex, else 404
-	if (!is_file(path))
-	{
-		std::cout << "Not a file\n";
+	if (!is_file(path) && curr_loc.autoindex == false)
 		return (404);
-	}
-	else
-		std::cout << "Is a file\n";
 
 	return (200);
 }
@@ -246,6 +229,8 @@ std::string	ResponseHandler::find_file_path(std::string path)
 
 	if (getcwd(cwd, 256) == NULL)
 		throw std::runtime_error("Getcwd failed.");
+	if (path.find(cwd) != std::string::npos)
+		return (path);
 	return (cwd + path);
 }
 
@@ -316,5 +301,46 @@ std::string	ResponseHandler::get_content_type(std::string file)
 		return ("audio/mpeg");
 
 	else
-		return ("application/octet-stream");
+		return ("text/html");
+}
+
+std::string ResponseHandler::dir_to_html(std::string dir_entry, std::string path, std::string host)
+{
+	std::stringstream ss;
+	if (dir_entry != ".." && dir_entry != ".")
+		ss << "\t\t<p><a href=\"http://" + host + path + "/" + dir_entry + "\">" + dir_entry + "/" + "</a></p>\n";
+	return ss.str();
+}
+
+std::string ResponseHandler::get_autoindex(std::string path)
+{
+	std::string	fullpath = path;
+	DIR *dir = opendir(fullpath.c_str());
+
+	std::string Autoindex_Page =
+	"<!DOCTYPE html>\n\
+    <html>\n\
+    <head>\n\
+    <title>" + path + "</title>\n\
+    </head>\n\
+    <body>\n\
+    <h1>INDEX</h1>\n\
+    <p>\n";
+
+	std::cout << path << std::endl;
+	if (dir == NULL)
+		throw std::runtime_error("Opendir failed : " + fullpath);
+	
+	if (path[0] != '/')
+		path = "/" + path;
+
+	for (struct dirent *dir_entry = readdir(dir); dir_entry; dir_entry = readdir(dir))
+		Autoindex_Page += dir_to_html(std::string(dir_entry->d_name), path, request.host);
+
+	Autoindex_Page += "\
+    </p>\n\
+    </body>\n\
+    </html>\n";
+	closedir(dir);
+	return Autoindex_Page;
 }
