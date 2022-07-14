@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/03 14:28:52 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/12 09:31:16 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 11:01:59 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,10 +106,6 @@ void	ParserConfig::parseServerCtx(std::string& line)
 		addAutoIndex(ss, sm);
 	else if (word == "cgi_param")
 		addCgis(ss, sm);
-	else if (word == "redirect")
-		addRedirect(ss, sm);
-	else if (word == "upload")
-		addUpload(ss, sm);
 	else
 		throw std::runtime_error("Unexpected argument '" + word + "' on line : " + std::to_string(m_curr_line));
 }
@@ -186,28 +182,6 @@ void	ParserConfig::addServerName(std::stringstream& ss, ServerMembers& sm)
 		sm.server_name.push_back(word);
 	if (sm.server_name.empty())
 		throw std::runtime_error("Expected server names argument on line : " + std::to_string(m_curr_line));
-}
-
-void	ParserConfig::addRedirect(std::stringstream& ss, ServerMembers& sm)
-{
-	std::string	word;
-
-	if (!(ss >> word))
-		throw std::runtime_error("Expected redirect argument on line : " + std::to_string(m_curr_line));
-	sm.redirect = word;
-	if (ss >> word)
-		throw std::runtime_error("Unexpected argument '" + word + "' on line : " + std::to_string(m_curr_line));
-}
-
-void	ParserConfig::addUpload(std::stringstream& ss, ServerMembers& sm)
-{
-	std::string	word;
-
-	if (!(ss >> word))
-		throw std::runtime_error("Expected upload argument on line : " + std::to_string(m_curr_line));
-	sm.upload = word;
-	if (ss >> word)
-		throw std::runtime_error("Unexpected argument '" + word + "' on line : " + std::to_string(m_curr_line));
 }
 
 void	ParserConfig::addRoot(std::stringstream& ss, ConfigMembers& cm)
@@ -367,8 +341,6 @@ std::ostream&	operator<<(std::ostream &ostr, ParserConfig& pc)
 		for (std::map<std::string, std::string>::iterator namesIt = it->cgis.begin(); namesIt != it->cgis.end(); ++namesIt)
 			ostr << "'" << namesIt->first << "' : '" << namesIt->second << "'. ";
 		ostr << "\n";
-		ostr << "Upload : " << it->upload << std::endl;
-		ostr << "Redirect : " << it->redirect << std::endl;
 		ostr << "Max body size : " << it->max_body_size << std::endl;
 		for (std::map<int, std::string>::iterator errIt = it->error_pages.begin(); errIt != it->error_pages.end(); ++errIt)
 			ostr << "Error '" << errIt->first << "' = page '" << errIt->second << "'\n";

@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 09:16:36 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 11:08:43 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,6 +120,10 @@ std::string	ResponseHandler::write_response(void)
 	response += "\nContent-Length: " + std::to_string(file.size());
 	response += "\nContent-Type: " + get_content_type(path);
 
+	//	If upload : set content disposition to attachment + filename
+	if (request.content_disposition == "form-data")
+		response += "\nContent-disposition: attachment; filename=" + request.postvals["filename"];
+
 	//	Body
 	response += "\r\n\r\n";
 	response += file;
@@ -157,6 +161,7 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 		if (dup2(fd[1], 1) == -1)
 			throw std::runtime_error("Dup2 failed.");
 		execve(exec[0], (char **)&exec[0], (char **)&env[0]);
+		//	Print bad gateway file
 		exit(0);
 	}
 	else
@@ -307,7 +312,6 @@ std::string	ResponseHandler::get_content_type(std::string file)
 std::string ResponseHandler::dir_to_html(std::string dir_entry, std::string path, std::string host)
 {
 	std::stringstream ss;
-	std::cout << path << " " << dir_entry << std::endl;
 	if (dir_entry != ".." && dir_entry != ".")
 		ss << "\t\t<p><a href=\"http://" + host + path + dir_entry + "\">" + dir_entry + "/" + "</a></p>\n";
 	return ss.str();
@@ -327,7 +331,6 @@ std::string ResponseHandler::get_autoindex(std::string fullpath, std::string pat
     <h1>INDEX</h1>\n\
     <p>\n";
 
-	std::cout << path << std::endl;
 	if (dir == NULL)
 		throw std::runtime_error("Opendir failed : " + fullpath);
 	

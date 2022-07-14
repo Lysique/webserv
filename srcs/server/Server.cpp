@@ -88,9 +88,12 @@ void	Server::handle_connection(int socket, ResponseHandler response)
 
 	//	Parse request and manage response
 	std::cout << buffer << std::endl;
+	std::cout << "xx" << std::endl;
 	ParserRequest pr(buffer);
+	std::cout << pr << std::endl;
+
 	http_response = response.manage_request(pr.getRequest());
-	std::cout << http_response << std::endl;
+	//std::cout << http_response << std::endl;
 
 	//	Send the response to the client_socket
 	ret = write(socket, http_response.c_str(), http_response.size());
