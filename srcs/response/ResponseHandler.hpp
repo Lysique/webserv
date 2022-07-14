@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/12 15:09:35 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 09:10:25 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
  #ifndef RESPONSEHANDLER_HPP
@@ -54,7 +54,7 @@ private:
 
 	//	Autoindex
 	std::string	dir_to_html(std::string dir_entry, std::string path, std::string host);
-	std::string get_autoindex(std::string path);
+	std::string get_autoindex(std::string fullpath, std::string path);
 
 	//	Private members
 	std::vector<ServerMembers>	servers;

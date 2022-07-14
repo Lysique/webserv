@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/12 16:08:48 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 09:16:36 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,32 +64,34 @@ std::string	ResponseHandler::write_response(void)
 
 	//	Find path of the requested file
 	
+	path = find_file_path(curr_loc.root + request.location);
+	error_code = check_error_code(path);
+
 	//	Try to find index if needed
 	if (curr_loc.uri == request.location)
 	{
+		std::string	index_path;
 		for (size_t i = 0; i < curr_loc.index.size(); ++i)
 		{
-			path = find_file_path(curr_loc.root + request.location + curr_loc.index[i]);
-			if (is_file(path))
+			index_path = path + curr_loc.index[i];
+			error_code = check_error_code(index_path);
+			if (error_code == 200)
+			{
+				path = index_path;
 				break ;
+			}
 		}
-		path = find_file_path(curr_loc.root + request.location);
 	}
-	//	No index needed here
-	else
-		path = find_file_path(curr_loc.root + request.location);
 
-
-	//	Change error_code and file_path with error page if needed
-	error_code = check_error_code(path);
+	//	If error ; get error_page
 	if (error_code != 200)
 		path = find_file_path(curr_loc.error_pages[error_code]);
 
-	//	Retrieve the requested file
+	//	Retrieve the requested file or the autoindex
 	if (is_file(path))
 		file = retrieve_file(path);
 	else
-		file = get_autoindex(path);
+		file = get_autoindex(path, curr_loc.root + request.location);
 
 	//	Check if Payload too large
 	if (file.size() > curr_loc.max_body_size)
@@ -229,8 +231,6 @@ std::string	ResponseHandler::find_file_path(std::string path)
 
 	if (getcwd(cwd, 256) == NULL)
 		throw std::runtime_error("Getcwd failed.");
-	if (path.find(cwd) != std::string::npos)
-		return (path);
 	return (cwd + path);
 }
 
@@ -307,14 +307,14 @@ std::string	ResponseHandler::get_content_type(std::string file)
 std::string ResponseHandler::dir_to_html(std::string dir_entry, std::string path, std::string host)
 {
 	std::stringstream ss;
+	std::cout << path << " " << dir_entry << std::endl;
 	if (dir_entry != ".." && dir_entry != ".")
-		ss << "\t\t<p><a href=\"http://" + host + path + "/" + dir_entry + "\">" + dir_entry + "/" + "</a></p>\n";
+		ss << "\t\t<p><a href=\"http://" + host + path + dir_entry + "\">" + dir_entry + "/" + "</a></p>\n";
 	return ss.str();
 }
 
-std::string ResponseHandler::get_autoindex(std::string path)
+std::string ResponseHandler::get_autoindex(std::string fullpath, std::string path)
 {
-	std::string	fullpath = path;
 	DIR *dir = opendir(fullpath.c_str());
 
 	std::string Autoindex_Page =
@@ -331,8 +331,8 @@ std::string ResponseHandler::get_autoindex(std::string path)
 	if (dir == NULL)
 		throw std::runtime_error("Opendir failed : " + fullpath);
 	
-	if (path[0] != '/')
-		path = "/" + path;
+	if (path.back() != '/')
+		path += "/";
 
 	for (struct dirent *dir_entry = readdir(dir); dir_entry; dir_entry = readdir(dir))
 		Autoindex_Page += dir_to_html(std::string(dir_entry->d_name), path, request.host);
