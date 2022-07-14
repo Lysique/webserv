@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 12:26:26 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 15:05:10 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ ResponseHandler::ResponseHandler(std::vector<ServerMembers> s)
 	ErrorResponses[405] = "Method Not Allowed";
 	ErrorResponses[413] = "Payload Too Large";
 	ErrorResponses[501] = "Not Implemented";
+	ErrorResponses[502] = "Bad Gateway";
 }
 
 ResponseHandler::~ResponseHandler()
@@ -123,7 +124,6 @@ std::string	ResponseHandler::write_response(void)
 	response += std::to_string(error_code);
 	response += " ";
 	response += ErrorResponses[error_code];
-	//response += "\nServer: serv_name";
 	response += "\nDate: " + get_date();
 	response += "\nContent-Length: " + std::to_string(file.size());
 	response += "\nContent-Type: " + get_content_type(path);
@@ -173,6 +173,8 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 			throw std::runtime_error("Dup2 failed.");
 		execve(exec[0], (char **)&exec[0], (char **)&env[0]);
 		//	Print bad gateway file
+		std::string path = find_file_path(curr_loc.error_pages[502]);
+		std::cout << retrieve_file(path);
 		exit(0);
 	}
 	else
@@ -202,11 +204,7 @@ int	ResponseHandler::check_error_code(std::string path)
 	
 	//	Check if we can access to path
 	if (access(path.c_str(), F_OK) < 0)
-	{
-		std::cout << path << std::endl;
-		std::cout << "XX\n";
 		return (404);
-	}
 
 	//	Check if read access
 	if (access(path.c_str(), R_OK) < 0)

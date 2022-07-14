@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/03 14:28:52 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 11:01:59 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 14:51:43 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -381,6 +381,7 @@ ConfigMembers::ConfigMembers(void)
 	this->error_pages[405] = path_to_error_files + "405.html";
 	this->error_pages[413] = path_to_error_files + "413.html";
 	this->error_pages[501] = path_to_error_files + "501.html";
+	this->error_pages[502] = path_to_error_files + "502.html";
 }
 
 ServerMembers::ServerMembers(const ServerMembers& cpy)
