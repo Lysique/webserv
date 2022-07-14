@@ -6,13 +6,13 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 10:57:29 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 13:28:17 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ParserRequest.hpp"
 
-ParserRequest::ParserRequest(const char *buffer)
+ParserRequest::ParserRequest(std::string buffer)
 {
 	m_request = buffer;
 	parse();
@@ -63,6 +63,8 @@ void	ParserRequest::parseLine(std::string& line)
 		addMethod(ss, word);
 	else if (word == "Host:")
 		addHost(ss);
+	else if (word == "Content-Length:")
+		addContentLength(ss);
 }
 
 void	ParserRequest::addMethod(std::stringstream& ss, std::string& word)
@@ -82,6 +84,14 @@ void	ParserRequest::addHost(std::stringstream& ss)
 	m_rm.host = word.substr(0, double_dot);
 	m_rm.port = atoi(word.substr(double_dot + 1, word.size()).c_str());
 	m_rm.host = word;
+}
+
+void	ParserRequest::addContentLength(std::stringstream& ss)
+{
+	std::string	word;
+
+	ss >> word;
+	m_rm.content_length = atoi(word.c_str());
 }
 
 void	ParserRequest::parsePostvals(std::string& line)

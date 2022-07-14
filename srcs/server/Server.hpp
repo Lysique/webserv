@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/07 10:51:54 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 14:35:50 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,8 +28,7 @@
 
 #define DATA_BUFFER 800000
 
-class ResponseHandler;
-
+class ResponseHandler; 
 class Server
 {
 
@@ -45,7 +44,7 @@ private:
 
 	//	Private functions
 	int		create_server(int iport, std::string host);
-	void	handle_connection(int socket, ResponseHandler response);
+	bool	handle_connection(int socket, std::string& buffer, int& ret, ResponseHandler& response);
 
 	bool	is_server_socket(int socket);
 

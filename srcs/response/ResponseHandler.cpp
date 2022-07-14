@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 11:08:43 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 12:26:26 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,10 +42,9 @@ std::string ResponseHandler::manage_request(RequestMembers r)
 	}
 
 	//	Find correct location in server
-	//	Need to find based on precision and only the beginning should match!!
 	for (size_t i = 0; i < current_server.locations.size(); ++i)
 	{
-		if (request.location.find(current_server.locations[i].uri) != std::string::npos)
+		if (request.location.find(current_server.locations[i].uri) == 0)
 		{
 			if (current_location.uri < current_server.locations[i].uri)
 				current_location = current_server.locations[i];
@@ -89,7 +88,16 @@ std::string	ResponseHandler::write_response(void)
 
 	//	Retrieve the requested file or the autoindex
 	if (is_file(path))
-		file = retrieve_file(path);
+	{
+		//	If delete method ; no response body
+		if (request.method == "DELETE" && error_code == 200)
+		{
+			error_code = 204;
+			remove(path.c_str());
+		}
+		else
+			file = retrieve_file(path);
+	}
 	else
 		file = get_autoindex(path, curr_loc.root + request.location);
 
@@ -115,19 +123,22 @@ std::string	ResponseHandler::write_response(void)
 	response += std::to_string(error_code);
 	response += " ";
 	response += ErrorResponses[error_code];
-	response += "\nServer: serv_name";
+	//response += "\nServer: serv_name";
 	response += "\nDate: " + get_date();
 	response += "\nContent-Length: " + std::to_string(file.size());
 	response += "\nContent-Type: " + get_content_type(path);
 
 	//	If upload : set content disposition to attachment + filename
 	if (request.content_disposition == "form-data")
-		response += "\nContent-disposition: attachment; filename=" + request.postvals["filename"];
+		response += "\nContent-Disposition: attachment; filename=" + request.postvals["filename"];
 
 	//	Body
 	response += "\r\n\r\n";
-	response += file;
-	response += "\r\n\r\n";
+	if (error_code != 204)
+	{
+		response += file;
+		response += "\r\n\r\n";
+	}
 	return (response);
 }
 
@@ -178,7 +189,7 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 	}
 }
 
-int	ResponseHandler::check_error_code(std::string &path)
+int	ResponseHandler::check_error_code(std::string path)
 {
 	//	Check if allowed method (405) or not implemented method (501)
 	if (is_method_implemented())
@@ -191,14 +202,18 @@ int	ResponseHandler::check_error_code(std::string &path)
 	
 	//	Check if we can access to path
 	if (access(path.c_str(), F_OK) < 0)
+	{
+		std::cout << path << std::endl;
+		std::cout << "XX\n";
 		return (404);
+	}
 
 	//	Check if read access
 	if (access(path.c_str(), R_OK) < 0)
 		return (403);
 
 	//	Check if path is a file; if not : autoindex, else 404
-	if (!is_file(path) && curr_loc.autoindex == false)
+	if (!is_file(path) && (curr_loc.autoindex == false || request.method != "GET"))
 		return (404);
 
 	return (200);

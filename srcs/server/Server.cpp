@@ -67,47 +67,55 @@ bool	Server::is_server_socket(int socket)
 	return (false);
 }
 
-void	Server::handle_connection(int socket, ResponseHandler response)
+bool	Server::handle_connection(int socket, std::string& buffer, int& ret, ResponseHandler& response)
 {
-	char		buffer[DATA_BUFFER + 1];
-	int			ret;
 	std::string	http_response;
+	int			curr_ret;
+	char		curr_buffer[DATA_BUFFER + 1];
 
 	//	Read connection from socket
-	memset(buffer, 0, DATA_BUFFER);
-	ret = read(socket, buffer, DATA_BUFFER);
-
-	if (ret == -1)
+	memset(curr_buffer, 0, DATA_BUFFER);
+	curr_ret = read(socket, curr_buffer, DATA_BUFFER);
+	if (curr_ret == -1)
 		throw std::runtime_error("Read failed.");
 
 	//	Client closed the connection -> no response needed
-	if (ret == 0)
-		return ;
+	if (curr_ret == 0)
+		return true;
 
-	//	Else handle the request.
-
+	//	Add the ret and buffer to previous
+	ret += curr_ret;
+	buffer += curr_buffer;
 	//	Parse request and manage response
-	std::cout << buffer << std::endl;
-	std::cout << "xx" << std::endl;
-	ParserRequest pr(buffer);
-	std::cout << pr << std::endl;
+	// std::cout << buffer << std::endl;
 
-	http_response = response.manage_request(pr.getRequest());
+	ParserRequest pr(buffer);
+	RequestMembers rm = pr.getRequest();
+
+	//	Not everything has been readed
+	if (ret < static_cast<int>(rm.content_length))
+		return false;
+
+	//	Else manage request and send response
+	http_response = response.manage_request(rm);
 	//std::cout << http_response << std::endl;
 
-	//	Send the response to the client_socket
-	ret = write(socket, http_response.c_str(), http_response.size());
+	curr_ret = write(socket, http_response.c_str(), http_response.size());
 	if (ret == -1)
 		throw std::runtime_error("Write failed.");
-	//	If ret is 0, it means that the client disconnected.
-	//	We close the connection in any case so nothing to do here.
+
+	//	If ret is 0, it means that the client disconnected.  
+	//	We close the connection in any case so nothing to do here. 
+	return true;
 }
 
 void Server::run()
 {
-	fd_set			current_sockets, ready_sockets;
-	int				client_socket;
-	ResponseHandler	response(servers);
+	fd_set						current_sockets, ready_sockets;
+	int							client_socket;
+	ResponseHandler				response(servers);
+	std::map<int, std::string>	buffers;
+	std::map<int, int>			ret;
 
 	//	Empty variables needed for accept
 	struct sockaddr_in	client_addr;
@@ -139,15 +147,22 @@ void Server::run()
 					std::cout << "Client accepted : " << client_socket << "\n";
 					if (client_socket == -1)
 						throw std::runtime_error("Accept failed.");
+
+					buffers[client_socket].clear();
+					ret[client_socket] = 0;
 					FD_SET(client_socket, &current_sockets);
 				}
 				//	Else, we handle the connection and close it.
 				else
 				{
-					std::cout << "Handle Request\n";
-					handle_connection(fd, response);
-					FD_CLR(fd, &current_sockets);
-					close(fd);
+					std::cout << "Handle Request : " << fd << std::endl;
+				
+					//	All the request has been read if true
+					if (handle_connection(fd, buffers[fd], ret[fd], response) == true)
+					{
+						FD_CLR(fd, &current_sockets);
+						close(fd);
+					}
 				}
 			}
 		}

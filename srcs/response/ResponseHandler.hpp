@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 09:10:25 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 12:17:37 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
  #ifndef RESPONSEHANDLER_HPP
@@ -38,7 +38,7 @@ private:
 
 
 	//	Error code management
-	int			check_error_code(std::string &path);
+	int			check_error_code(std::string path);
 
 	bool		is_method_allowed(void);
 	bool		is_method_implemented(void);

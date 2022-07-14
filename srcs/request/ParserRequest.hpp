@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:17 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 10:55:17 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 13:44:28 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,8 +33,10 @@ struct RequestMembers
 	std::string							location;
 	std::string							protocol;
 	std::string							host;
-	std::string							content_disposition;
 	int									port;
+
+	std::string							content_disposition;
+	size_t								content_length;
 };
 
 class ParserRequest
@@ -42,7 +44,7 @@ class ParserRequest
 
 public:
 	//	Public member functions
-	ParserRequest(const char *buffer);
+	ParserRequest(std::string buffer);
 
 	~ParserRequest(void);
 
@@ -58,6 +60,7 @@ private:
 	//	Secondary parsing functions
 	void	addMethod(std::stringstream& ss, std::string& word);
 	void	addHost(std::stringstream& ss);
+	void	addContentLength(std::stringstream& ss);
 
 	//	Post method parsing
 	void	parsePostvals(std::string& line);
@@ -68,7 +71,6 @@ private:
 	//	Private members
 	RequestMembers	m_rm;
 	std::string		m_request;
-	std::string		m_boundary;
 };
 
 std::ostream&	operator<<(std::ostream &ostr, ParserRequest& pr);
