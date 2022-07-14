@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 15:05:10 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/14 16:27:50 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,11 +59,9 @@ std::string	ResponseHandler::write_response(void)
 {
 	int			error_code;
 	std::string	file;
-	std::string	response;
 	std::string	path;
 
 	//	Find path of the requested file
-	
 	path = find_file_path(curr_loc.root + request.location);
 	error_code = check_error_code(path);
 
@@ -80,12 +78,19 @@ std::string	ResponseHandler::write_response(void)
 				path = index_path;
 				break ;
 			}
+			if (curr_loc.autoindex == true)
+				error_code = 200;
 		}
 	}
 
 	//	If error ; get error_page
 	if (error_code != 200)
+	{
 		path = find_file_path(curr_loc.error_pages[error_code]);
+		int	error = check_error_code(path);
+		if (error != 200 && error != 405 && error != 501)
+			return (make_response("", error_code, path));
+	}
 
 	//	Retrieve the requested file or the autoindex
 	if (is_file(path))
@@ -118,6 +123,13 @@ std::string	ResponseHandler::write_response(void)
 		if (idx != std::string::npos && path.substr(idx) == it->first)
 			file = exec_cgi(path, it->second);
 	}
+
+	return (make_response(file, error_code, path));
+}
+
+std::string	ResponseHandler::make_response(std::string file, int error_code, std::string path)
+{
+	std::string	response;
 
 	//	Headers
    	response += "HTTP/1.1 ";
@@ -290,7 +302,7 @@ std::string	ResponseHandler::get_content_type(std::string file)
 		return ("text/javascript");
 	else if (extension == "css")
 		return ("text/css");
-	else if (extension == "cpp")
+	else if (extension == "cpp" || extension == "hpp")
 		return ("text/plain");
 
 	else if (extension == "pdf")
@@ -325,6 +337,7 @@ std::string	ResponseHandler::get_content_type(std::string file)
 std::string ResponseHandler::dir_to_html(std::string dir_entry, std::string path, std::string host)
 {
 	std::stringstream ss;
+	path = path.substr(path.find(curr_loc.root) + curr_loc.root.size());
 	if (dir_entry != ".." && dir_entry != ".")
 		ss << "\t\t<p><a href=\"http://" + host + path + dir_entry + "\">" + dir_entry + "/" + "</a></p>\n";
 	return ss.str();

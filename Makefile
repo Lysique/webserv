@@ -6,7 +6,7 @@
 #    By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/05/06 10:37:35 by tamighi           #+#    #+#              #
-#    Updated: 2022/07/05 11:27:36 by tamighi          ###   ########.fr        #
+#    Updated: 2022/07/14 15:06:26 by tamighi          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -49,8 +49,8 @@ $(OBJ_DIR)%.o: $(SERVER_DIR)%.cpp
 #### UTILS FILES
 
 UTILS_DIR = srcs/utils/
-UTILS_FILES = Utils.cpp cgi.cpp
-UTILS_HEADERS = Utils.hpp cgi.hpp
+UTILS_FILES = Utils.cpp
+UTILS_HEADERS = Utils.hpp
 
 UTILS_SRCS = $(addprefix $(UTILS_DIR), $(UTILS_FILES))
 UTILS_INCLUDES = $(addprefix $(UTILS_DIR), $(UTILS_HEADERS))
