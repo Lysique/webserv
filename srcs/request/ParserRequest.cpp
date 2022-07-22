@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/21 15:56:50 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 11:21:04 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,20 +25,49 @@ const RequestMembers&	ParserRequest::getRequest(int fd)
 	return (m_rms[fd]);
 }
 
-void	ParserRequest::parse(std::string buffer, int fd)
+void	ParserRequest::manage_request(int fd)
 {
-	std::stringstream	ss(buffer);
+	//	Read data from fd
+	int			ret;
+	char		buffer[DATA_BUFFER + 1];
+
+	memset(buffer, 0, DATA_BUFFER);
+	ret = read(fd, buffer, DATA_BUFFER);
+	std::cout << buffer << "\n" << ret << std::endl;
+	if (ret == -1)
+		throw std::runtime_error("Read failed.");
+
+	if (ret == 0)
+	{
+		m_rms.erase(fd);
+		return ;
+	}
+
+	//	Retrieve data structure from current fd
+	curr_rm = &m_rms[fd];
+
+	//	Put the char to a cpp string
+	std::string	str_buff(buffer, ret);
+	parse(str_buff);
+}
+
+void	ParserRequest::parse(std::string buffer)
+{
 	std::string			line;
-
-	curr_rm = m_rms[fd];
-	curr_fd = fd;
-
-	//	parse here
+	std::stringstream	ss(buffer);
 
 	while (std::getline(ss, line))
-		parseLine(line);
+	{
+		if (curr_rm->ctx == RequestMembers::HEADER)
+			parseHeader(line);
+		else if (curr_rm->ctx == RequestMembers::BODY)
+			parseBody(line);
+		else if (curr_rm->ctx == RequestMembers::BOUNDARY)
+			parseBody(line);
+	}
 
-	//	Should be it
+	curr_rm->parsed = true;
+	/*
 
 	if (line == "\r")
 	{
@@ -51,50 +80,88 @@ void	ParserRequest::parse(std::string buffer, int fd)
 		else
 			parseEnv(line);
 	}
+	*/
 }
 
-void	ParserRequest::parseLine(std::string& line)
+void	ParserRequest::parseHeader(std::string& line)
 {
 	std::stringstream	ss(line);
 	std::string			word;
 
 	ss >> word;
 	if (Utils::isValidMethod(word))
-		addMethod(ss, word);
+		parseMethod(ss, word);
 	else if (word == "Host:")
-		addHost(ss);
+		parseHost(ss);
 	else if (word == "Content-Length:")
-		addContentLength(ss);
+		parseContentLength(ss);
+	else if (word == "Content-Type:")
+		parseContentType(ss);
+	else if (word == "Connection:")
+		parseConnection(ss);
+	else if (word == "")
+		curr_rm->ctx = RequestMembers::BODY;
 }
 
-void	ParserRequest::addMethod(std::stringstream& ss, std::string& word)
+void	ParserRequest::parseBody(std::string& line)
 {
-	//	First line of a request ; we clear the previous one
-	m_rms.erase(fd);
-
-	curr_rm.method = word;
-	ss >> curr_rm.location;
-	ss >> curr_rm.protocol;
+	if (line.find(curr_rm->boundary) != std::string::npos)
+		curr_rm->ctx = RequestMembers::BOUNDARY;
+	else
+		parseEnv(line);
 }
 
-void	ParserRequest::addHost(std::stringstream& ss)
+void	ParserRequest::parseMethod(std::stringstream& ss, std::string& word)
+{
+	curr_rm->method = word;
+	ss >> curr_rm->location;
+	ss >> curr_rm->protocol;
+}
+
+void	ParserRequest::parseHost(std::stringstream& ss)
 {
 	std::string	word;
 	size_t		double_dot;
 
 	ss >> word;
+
 	double_dot = word.find(":");
-	curr_rm.host = word.substr(0, double_dot);
 	if (double_dot != std::string::npos)
-		curr_rm.port = atoi(word.substr(double_dot + 1, word.size()).c_str());
+	{
+		curr_rm->host = word.substr(0, double_dot);
+		curr_rm->port = atoi(word.substr(double_dot + 1, word.size()).c_str());
+	}
+	else
+	{
+		curr_rm->host = word;
+		curr_rm->port = 80;
+	}
 }
 
-void	ParserRequest::addContentLength(std::stringstream& ss)
+void	ParserRequest::parseContentLength(std::stringstream& ss)
 {
 	std::string	word;
 
 	ss >> word;
-	curr_rm.content_length = atoi(word.c_str());
+	curr_rm->content_length = atoi(word.c_str());
+}
+
+void	ParserRequest::parseContentType(std::stringstream& ss)
+{
+	std::string	word;
+
+	ss >> word;
+	if (word == "multipart/form-data;")
+	{
+		ss >> word;
+		size_t idx = word.find("WebKitFormBoundary");
+		curr_rm->boundary = word.substr(idx);
+	}
+}
+
+void	ParserRequest::parseConnection(std::stringstream& ss)
+{
+	ss >> curr_rm->connection;
 }
 
 void	ParserRequest::parsePostvals(std::string& line)
@@ -104,10 +171,10 @@ void	ParserRequest::parsePostvals(std::string& line)
 
 	ss >> word;
 	if (word == "Content-Disposition:")
-		addContentDisposition(ss);
+		parseContentDisposition(ss);
 }
 
-void	ParserRequest::addContentDisposition(std::stringstream& ss)
+void	ParserRequest::parseContentDisposition(std::stringstream& ss)
 {
 	std::string	word;
 	std::string	key;
@@ -116,7 +183,7 @@ void	ParserRequest::addContentDisposition(std::stringstream& ss)
 
 	ss >> word;
 	word.pop_back();
-	curr_rm.content_disposition = word;
+	curr_rm->content_disposition = word;
 	while (ss >> word)
 	{
 		equal = word.find("=");
@@ -124,7 +191,7 @@ void	ParserRequest::addContentDisposition(std::stringstream& ss)
 		value = word.substr(equal + 1);
 		if (value.back() == ';')
 			value.pop_back();
-		curr_rm.postvals[key] = value;
+		curr_rm->postvals[key] = value;
 	}
 }
 
@@ -142,22 +209,25 @@ void	ParserRequest::parseEnv(std::string& line)
 
 		key = line.substr(0, equal);
 		value = line.substr(equal + 1, next - (equal + 1));
-		curr_rm.postvals[key] = value;
+		curr_rm->postvals[key] = value;
 		line = line.substr(next + 1, line.size());
 	}
 }
 
-std::ostream&	operator<<(std::ostream &ostr, ParserRequest& pr)
+std::ostream&	operator<<(std::ostream &ostr, RequestMembers& rm)
 {
-	RequestMembers	rm = pr.getRequest();
-	std::string		str = pr.getRequestStr();
-
-	//ostr << "REQUEST : \n" << str << std::endl;
 	ostr << "PARSING : \n";
 	ostr << "Method : " << rm.method << std::endl;
 	ostr << "Location : " << rm.location << std::endl;
 	ostr << "Protocol : " << rm.protocol << std::endl;
-	ostr << "Host : " << rm.host << std::endl;
+
+	ostr << "Host : " << rm.host << ", port : " << rm.port << std::endl;
+	ostr << "Content_length : " << rm.content_length << std::endl;
+	ostr << "Connection : " << rm.connection << std::endl;
+	ostr << "Boundary : " << rm.boundary << std::endl;
+
+	ostr << "parsed : " << rm.parsed << std::endl;
+
 	ostr << "Postvals: \n";
 	for (std::map<std::string, std::string>::iterator it = rm.postvals.begin(); it != rm.postvals.end(); ++it)
 		ostr << "'" << it->first << "' : '" << it->second << "'. ";

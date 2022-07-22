@@ -42,7 +42,7 @@ SERVER_SRCS = $(addprefix $(SERVER_DIR), $(SERVER_FILES))
 SERVER_INCLUDES = $(addprefix $(SERVER_DIR), $(SERVER_HEADERS))
 SERVER_OBJS = $(addprefix $(OBJ_DIR), $(SERVER_FILES:.cpp=.o))
 
-$(OBJ_DIR)%.o: $(SERVER_DIR)%.cpp
+$(OBJ_DIR)%.o: $(SERVER_DIR)%.cpp $(SERVER_DIR)%.hpp
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(FLAGS) -o $@ -c $<
 
@@ -56,7 +56,7 @@ UTILS_SRCS = $(addprefix $(UTILS_DIR), $(UTILS_FILES))
 UTILS_INCLUDES = $(addprefix $(UTILS_DIR), $(UTILS_HEADERS))
 UTILS_OBJS = $(addprefix $(OBJ_DIR), $(UTILS_FILES:.cpp=.o))
 
-$(OBJ_DIR)%.o: $(UTILS_DIR)%.cpp
+$(OBJ_DIR)%.o: $(UTILS_DIR)%.cpp $(UTILS_DIR)%.hpp
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(FLAGS) -o $@ -c $<
 
@@ -70,7 +70,7 @@ CONFIG_SRCS = $(addprefix $(CONFIG_DIR), $(CONFIG_FILES))
 CONFIG_INCLUDES = $(addprefix $(CONFIG_DIR), $(CONFIG_HEADERS))
 CONFIG_OBJS = $(addprefix $(OBJ_DIR), $(CONFIG_FILES:.cpp=.o))
 
-$(OBJ_DIR)%.o: $(CONFIG_DIR)%.cpp
+$(OBJ_DIR)%.o: $(CONFIG_DIR)%.cpp $(CONFIG_DIR)%.hpp
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(FLAGS) -o $@ -c $<
 
@@ -84,7 +84,7 @@ REQUEST_SRCS = $(addprefix $(REQUEST_DIR), $(REQUEST_FILES))
 REQUEST_INCLUDES = $(addprefix $(REQUEST_DIR), $(REQUEST_HEADERS))
 REQUEST_OBJS = $(addprefix $(OBJ_DIR), $(REQUEST_FILES:.cpp=.o))
 
-$(OBJ_DIR)%.o: $(REQUEST_DIR)%.cpp
+$(OBJ_DIR)%.o: $(REQUEST_DIR)%.cpp $(REQUEST_DIR)%.hpp
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(FLAGS) -o $@ -c $<
 
@@ -98,7 +98,7 @@ RESPON_SRCS = $(addprefix $(RESPON_DIR), $(RESPON_FILES))
 RESPON_INCLUDES = $(addprefix $(RESPON_DIR), $(RESPON_HEADERS))
 RESPON_OBJS = $(addprefix $(OBJ_DIR), $(RESPON_FILES:.cpp=.o))
 
-$(OBJ_DIR)%.o: $(RESPON_DIR)%.cpp
+$(OBJ_DIR)%.o: $(RESPON_DIR)%.cpp $(RESPON_DIR)%.hpp 
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(FLAGS) -o $@ -c $<
 

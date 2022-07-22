@@ -81,44 +81,25 @@ void Server::run()
 			//	Check if is in the list of fd returned by select
 			if (FD_ISSET(fd, &ready_r_sock))
 			{
-				//	If it is a server, a client wants to connect so we accept it.
+				//	It is a server, a client wants to connect and send data
 				if (is_server_socket(fd))
 					accept_connection(fd);
 
-				//	Else, client is readable
+				//	It is a client sending data
 				else
-					//	req_handler.parse(fd);
-					read_connection(fd);
+				{
+					req_handler.manage_request(fd);
+					//if (req_handler.is_disconnected(fd));
+						// close connection
+				}
 			}
 
-			//	Client is writable
+			//	Client is ready for receiving data
 			if (FD_ISSET(fd, &ready_w_sock))
-				//	res_handler.manage_request(fd);
+				//close_connection(fd);
 				write_connection(fd);
 		}
 	}
-}
-
-void	Server::read_connection(int socket)
-{
-	int			ret;
-	char		buffer[DATA_BUFFER + 1];
-
-	//	Read connection from socket
-	memset(buffer, 0, DATA_BUFFER);
-	ret = read(socket, buffer, DATA_BUFFER);
-	if (ret == -1)
-		throw std::runtime_error("Read failed.");
-
-	//	Client closed the connection -> no response needed
-	if (ret == 0)
-	{
-		close_connection(socket);
-		return ;
-	}
-
-	//	Parse
-	req_handler.parse(buffer, socket);
 }
 
 void	Server::write_connection(int socket)
@@ -127,29 +108,31 @@ void	Server::write_connection(int socket)
 	std::string		buffer;
 
 	//	Get the parsed request
-	RequestMembers	rm = req_handler.getRequest(fd);
+	RequestMembers	rm = req_handler.getRequest(socket);
+	if (rm.parsed == false)
+		return ;
 
 
+	std::cout << rm << std::endl;
 	//	manage request, write data, and close or not the connection
-	res_handler.manage_request(rm);
+	buffer = res_handler.manage_request(rm);
 	//res_handler.write_connection();
 
 	//	Write the response
-	ret = write(socket, buffer, buffer.size());
+	ret = write(socket, buffer.c_str(), buffer.size());
 	if (ret == -1)
 		throw std::runtime_error("Write failed.");
 
 	// Client disconnected
 	if (ret == 0)
 	{
-		close_connection(socket);
-		return ;
+		//close_connection(socket);
+		//return ;
 	}
 
+	std::cout << buffer << " " << ret << std::endl;
 	//	Buffer will be cleared when everything is written
-	wr_buffer[socket]= wr_buffer[socket].substr(ret);
-	if (wr_buffer[socket].empty())
-		close_connection(socket);
+	close_connection(socket);
 }
 
 void	Server::accept_connection(int socket)

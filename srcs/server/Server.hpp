@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:22:23 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/21 15:45:56 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 10:07:45 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,13 +24,6 @@
 #include "../config/ParserConfig.hpp"
 #include "../response/ResponseHandler.hpp"
 #include "../request/ParserRequest.hpp"
-
-#define DATA_BUFFER 800000
-
-typedef struct t_buff {
-	std::string	buffer;
-	size_t		size;
-}				s_buff;
 
 class ResponseHandler; 
 class Server
@@ -54,7 +47,6 @@ private:
 	void	close_connection(int socket);
 
 	void	write_connection(int socket);
-	void	read_connection(int socket);
 
 	//	Utils
 	bool	is_server_socket(int socket);

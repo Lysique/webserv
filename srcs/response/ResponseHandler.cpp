@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/21 10:59:50 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 09:28:56 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -168,9 +168,9 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 	exec.push_back(file_path.c_str());
 	exec.push_back(0);
 
-	for (size_t i = 0; i < request.env.size(); ++i)
-		env.push_back(request.env[i].c_str());
-	env.push_back(0);
+	//for (size_t i = 0; i < request.env.size(); ++i)
+		//env.push_back(request.env[i].c_str());
+	//env.push_back(0);
 
 	//	Pipe and fork
 	if (pipe(fd) == -1)
