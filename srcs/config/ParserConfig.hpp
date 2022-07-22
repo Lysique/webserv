@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/03 14:28:49 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 11:01:42 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 16:28:05 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ struct ConfigMembers
 	size_t								max_body_size;
 	std::map<int, std::string>			error_pages;
 	bool								autoindex;
-	std::vector<std::string>			index;
+	std::string							index;
 	std::map<std::string, std::string>	cgis;
 };
 

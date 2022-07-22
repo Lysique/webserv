@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/22 11:21:04 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 17:23:48 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,12 +33,13 @@ void	ParserRequest::manage_request(int fd)
 
 	memset(buffer, 0, DATA_BUFFER);
 	ret = read(fd, buffer, DATA_BUFFER);
-	std::cout << buffer << "\n" << ret << std::endl;
+
 	if (ret == -1)
 		throw std::runtime_error("Read failed.");
 
 	if (ret == 0)
 	{
+		std::cout << "ERASE\n\n" << std::endl;
 		m_rms.erase(fd);
 		return ;
 	}
@@ -49,6 +50,11 @@ void	ParserRequest::manage_request(int fd)
 	//	Put the char to a cpp string
 	std::string	str_buff(buffer, ret);
 	parse(str_buff);
+}
+
+void	ParserRequest::clear(int fd)
+{
+	m_rms.erase(fd);
 }
 
 void	ParserRequest::parse(std::string buffer)
@@ -63,24 +69,11 @@ void	ParserRequest::parse(std::string buffer)
 		else if (curr_rm->ctx == RequestMembers::BODY)
 			parseBody(line);
 		else if (curr_rm->ctx == RequestMembers::BOUNDARY)
-			parseBody(line);
+			parseBoundary(line);
+		else if (curr_rm->ctx == RequestMembers::CONTENT)
+			parseContent(line);
 	}
-
 	curr_rm->parsed = true;
-	/*
-
-	if (line == "\r")
-	{
-		std::getline(ss, line);
-		if (line.find("WebKitFormBoundary") != std::string::npos)
-		{
-			while (std::getline(ss, line))
-				parsePostvals(line);
-		}
-		else
-			parseEnv(line);
-	}
-	*/
 }
 
 void	ParserRequest::parseHeader(std::string& line)
@@ -109,6 +102,27 @@ void	ParserRequest::parseBody(std::string& line)
 		curr_rm->ctx = RequestMembers::BOUNDARY;
 	else
 		parseEnv(line);
+}
+
+void	ParserRequest::parseBoundary(std::string& line)
+{
+	std::stringstream	ss(line);
+	std::string			word;
+
+	ss >> word;
+	if (word == "")
+		curr_rm->ctx = RequestMembers::CONTENT;
+	else if (word == "Content-Disposition:")
+		parseContentDisposition(ss);
+}
+
+void	ParserRequest::parseContent(std::string& line)
+{
+	//	Means end of upload file, there can be multiple ?
+	if (line.find(curr_rm->boundary) != std::string::npos)
+		curr_rm->ctx = RequestMembers::END;
+	else
+		curr_rm->upload += line;
 }
 
 void	ParserRequest::parseMethod(std::stringstream& ss, std::string& word)
@@ -162,16 +176,6 @@ void	ParserRequest::parseContentType(std::stringstream& ss)
 void	ParserRequest::parseConnection(std::stringstream& ss)
 {
 	ss >> curr_rm->connection;
-}
-
-void	ParserRequest::parsePostvals(std::string& line)
-{
-	std::string			word;
-	std::stringstream	ss(line);
-
-	ss >> word;
-	if (word == "Content-Disposition:")
-		parseContentDisposition(ss);
 }
 
 void	ParserRequest::parseContentDisposition(std::stringstream& ss)
@@ -231,5 +235,7 @@ std::ostream&	operator<<(std::ostream &ostr, RequestMembers& rm)
 	ostr << "Postvals: \n";
 	for (std::map<std::string, std::string>::iterator it = rm.postvals.begin(); it != rm.postvals.end(); ++it)
 		ostr << "'" << it->first << "' : '" << it->second << "'. ";
+	ostr << "\n";
+	ostr << "Upload :\n" << rm.upload << std::endl;
 	return (ostr);;
 }

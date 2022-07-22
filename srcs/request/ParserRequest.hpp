@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:17 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/22 11:20:35 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 12:58:55 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,9 @@ struct RequestMembers
 	{
 		HEADER,
 		BODY,
-		BOUNDARY
+		BOUNDARY,
+		CONTENT,
+		END
 	};
 
 	RequestMembers(void)
@@ -74,28 +76,30 @@ public:
 
 	const RequestMembers&	getRequest(int fd);
 
+	void	clear(int fd);
 private:
 	//	Private member functions
 	
 	//	Main parsing
 	void	parse(std::string buffer);
 
-	//	Header parsing
 	void	parseHeader(std::string& line);
 	void	parseBody(std::string& line);
+	void	parseBoundary(std::string& line);
+	void	parseContent(std::string& line);
 
+	//	Header parsing
 	void	parseMethod(std::stringstream& ss, std::string& word);
 	void	parseHost(std::stringstream& ss);
 	void	parseContentLength(std::stringstream& ss);
 	void	parseContentType(std::stringstream& ss);
 	void	parseConnection(std::stringstream& ss);
 
-	//	Post method parsing
-	void	parsePostvals(std::string& line);
-
+	//	Body parsing
 	void	parseEnv(std::string& line);
-	void	parseContentDisposition(std::stringstream& ss);
 
+	//	Boundary parsing
+	void	parseContentDisposition(std::stringstream& ss);
 
 	//	Private members
 	std::map<int, RequestMembers>	m_rms;

@@ -87,16 +87,11 @@ void Server::run()
 
 				//	It is a client sending data
 				else
-				{
 					req_handler.manage_request(fd);
-					//if (req_handler.is_disconnected(fd));
-						// close connection
-				}
 			}
 
 			//	Client is ready for receiving data
 			if (FD_ISSET(fd, &ready_w_sock))
-				//close_connection(fd);
 				write_connection(fd);
 		}
 	}
@@ -104,34 +99,9 @@ void Server::run()
 
 void	Server::write_connection(int socket)
 {
-	int				ret;
-	std::string		buffer;
-
-	//	Get the parsed request
 	RequestMembers	rm = req_handler.getRequest(socket);
-	if (rm.parsed == false)
-		return ;
 
-
-	std::cout << rm << std::endl;
-	//	manage request, write data, and close or not the connection
-	buffer = res_handler.manage_request(rm);
-	//res_handler.write_connection();
-
-	//	Write the response
-	ret = write(socket, buffer.c_str(), buffer.size());
-	if (ret == -1)
-		throw std::runtime_error("Write failed.");
-
-	// Client disconnected
-	if (ret == 0)
-	{
-		//close_connection(socket);
-		//return ;
-	}
-
-	std::cout << buffer << " " << ret << std::endl;
-	//	Buffer will be cleared when everything is written
+	res_handler.manage_request(socket, rm);
 	close_connection(socket);
 }
 
@@ -157,6 +127,7 @@ void	Server::accept_connection(int socket)
 void	Server::close_connection(int socket)
 {
 	FD_CLR(socket, &current_sockets);
+	req_handler.clear(socket);
 	close(socket);
 }
 

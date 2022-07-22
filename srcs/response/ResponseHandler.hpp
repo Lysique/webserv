@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/15 09:19:56 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 17:18:36 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
  #ifndef RESPONSEHANDLER_HPP
@@ -29,27 +29,30 @@ public:
 	ResponseHandler(std::vector<ServerMembers> s);
 	~ResponseHandler();
 
-	std::string	manage_request(RequestMembers r);
+	void		manage_request(int socket, RequestMembers r);
 
 private:
+
 	//	Private functions
-	std::string	write_response(void);
-	std::string	exec_cgi(std::string file_path, std::string exec_path);
+	std::string	manage_response(void);
 	std::string	make_response(std::string file, int error_code, std::string path);
 
+	void		get_current_loc(void);
+	void		write_response(void);
+	std::string	exec_cgi(std::string file_path, std::string exec_path);
 
 	//	Error code management
-	int			check_error_code(std::string path);
-
+	int			check_method(void);
 	bool		is_method_allowed(void);
 	bool		is_method_implemented(void);
 
+	int			check_path_access(std::string path);
+
 	//	Utils
-	std::string	find_file_path(std::string path);
+	std::string	get_path(std::string path);
 	std::string	retrieve_file(std::string path);
 	bool		is_file(std::string path);
 
-	//	Headers utils
 	std::string	get_date(void);
 	std::string	get_content_type(std::string file);
 
@@ -58,10 +61,14 @@ private:
 	std::string get_autoindex(std::string fullpath, std::string path);
 
 	//	Private members
+
 	std::vector<ServerMembers>	servers;
+	std::map<int, std::string>	http_responses;
+	std::map<int, std::string>	ErrorResponses;
+
 	RequestMembers				request;
 	LocationMembers				curr_loc;
-	std::map<int, std::string>	ErrorResponses;
+	int							curr_sock;
 };
 
 #endif

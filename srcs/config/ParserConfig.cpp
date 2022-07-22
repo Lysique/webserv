@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/03 14:28:52 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/14 14:51:43 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 17:12:56 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -198,12 +198,12 @@ void	ParserConfig::addRoot(std::stringstream& ss, ConfigMembers& cm)
 void	ParserConfig::addIndex(std::stringstream& ss, ConfigMembers& cm)
 {
 	std::string		word;
-	cm.index.clear();
 
-	while (ss >> word)
-		cm.index.push_back(word);
-	if (cm.index.empty())
+	if (!(ss >> word))
 		throw std::runtime_error("Expected index argument on line : " + std::to_string(m_curr_line));
+	cm.index = word;
+	if (ss >> word)
+		throw std::runtime_error("Unexpected argument '" + word + "' on line : " + std::to_string(m_curr_line));
 }
 
 void	ParserConfig::addMaxBodySize(std::stringstream& ss, ConfigMembers& cm)
@@ -328,10 +328,7 @@ std::ostream&	operator<<(std::ostream &ostr, ParserConfig& pc)
 			ostr << "'" << *namesIt << "' ";
 		ostr << "\n";
 		ostr << "Root : " << it->root << std::endl;
-		ostr << "Indexes : ";
-		for (std::vector<std::string>::iterator namesIt = it->index.begin(); namesIt != it->index.end(); ++namesIt)
-			ostr << "'" << *namesIt << "' ";
-		ostr << "\n";
+		ostr << "Index : " << it->index << std::endl;
 		ostr << "Autoindex : ";
 		if (it->autoindex)
 			ostr << "true" << std::endl;
@@ -349,10 +346,7 @@ std::ostream&	operator<<(std::ostream &ostr, ParserConfig& pc)
 		{
 			ostr << "\nLocation " << j << " : \n\n";
 			ostr << "\tRoot : " << locIt->root << std::endl;
-			ostr << "\tIndexes : ";
-			for (std::vector<std::string>::iterator namesIt = locIt->index.begin(); namesIt != locIt->index.end(); ++namesIt)
-				ostr << "'" << *namesIt << "' ";
-			ostr << "\n";
+			ostr << "\tIndex : " << locIt->index << std::endl;
 			ostr << "\tAutoindex : ";
 			if (locIt->autoindex)
 				ostr << "true" << std::endl;

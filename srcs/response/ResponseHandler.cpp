@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/22 09:28:56 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 17:26:17 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,6 @@ ResponseHandler::ResponseHandler(std::vector<ServerMembers> s)
 	: servers(s)
 {
 	ErrorResponses[200] = "OK";
-	ErrorResponses[204] = "No Content";
 	ErrorResponses[403] = "Forbidden";
 	ErrorResponses[404] = "Not Found";
 	ErrorResponses[405] = "Method Not Allowed";
@@ -29,101 +28,74 @@ ResponseHandler::~ResponseHandler()
 {
 }
 
-std::string ResponseHandler::manage_request(RequestMembers r)
+void ResponseHandler::manage_request(int socket, RequestMembers r)
 {
-	ServerMembers	current_server;
-	LocationMembers	current_location;
 	request = r;
+	curr_sock = socket;
 
-	//	Find correct server
-	for (size_t i = 0; i < servers.size(); ++i)
-	{
-		if (request.port == servers[i].port)
-			current_server = servers[i];
-	}
-
-	//	Find correct location in server
-	for (size_t i = 0; i < current_server.locations.size(); ++i)
-	{
-		if (request.location.find(current_server.locations[i].uri) == 0)
-		{
-			if (current_location.uri < current_server.locations[i].uri)
-				current_location = current_server.locations[i];
-		}
-	}
-	this->curr_loc = current_location;
-	return (write_response());
+	http_responses[socket] = manage_response();
+	std::cout << http_responses[socket] << "xx" << std::endl;
+	write_response();
 }
 
-std::string	ResponseHandler::write_response(void)
+std::string	ResponseHandler::manage_response(void)
 {
 	int			error_code;
-	std::string	file;
 	std::string	path;
+	std::string	file;
 
-	//	Find path of the requested file
-	path = find_file_path(curr_loc.root + request.location);
-	error_code = check_error_code(path);
+	//	There is still data from previous write
+	if (http_responses[curr_sock] != "")
+		return (http_responses[curr_sock]);
 
-	//	Try to find index if needed
-	if (curr_loc.uri == request.location)
-	{
-		std::string	index_path;
-		for (size_t i = 0; i < curr_loc.index.size(); ++i)
-		{
-			index_path = path + curr_loc.index[i];
-			error_code = check_error_code(index_path);
-			if (error_code == 200)
-			{
-				path = index_path;
-				break ;
-			}
-			if (curr_loc.autoindex == true)
-				error_code = 200;
-		}
-	}
+	//	The client is not done sending data
+	if (request.parsed == false)
+		return ("HTTP/1.1 100 Continue\r\n\r\n");
 
-	//	If error ; get error_page
+	get_current_loc();
+
+	//	Check if correct method
+	error_code = check_method();
 	if (error_code != 200)
-	{
-		path = find_file_path(curr_loc.error_pages[error_code]);
-		int	error = check_error_code(path);
-		if (error != 200 && error != 405 && error != 501)
-			return (make_response("", error_code, path));
-	}
+		return (make_response(file, error_code, path));
 
-	//	Retrieve the requested file or the autoindex
-	if (is_file(path))
+	//	Add index
+	if (curr_loc.uri == request.location && curr_loc.autoindex == false)
+		request.location += curr_loc.index;
+
+	//	Check if correct path
+	path = get_path(curr_loc.root + request.location);
+	error_code = check_path_access(path);
+	if (error_code != 200)
+		return (make_response(file, error_code, path));
+
+	//	Manage requests
+	if (request.method == "DELETE")
+		remove(path.c_str());
+	else if (request.method == "GET")
 	{
-		//	If delete method ; no response body
-		if (request.method == "DELETE" && error_code == 200)
-		{
-			error_code = 204;
-			remove(path.c_str());
-		}
-		else
+		if (is_file(path))
 			file = retrieve_file(path);
+		else
+			file = get_autoindex(path, request.location);
 	}
-	else
-		file = get_autoindex(path, curr_loc.root + request.location);
-
-	//	Check if Payload too large
-	if (file.size() > curr_loc.max_body_size)
-	{
-		error_code = 413;
-		path = find_file_path(curr_loc.error_pages[error_code]);
+	else if (request.method == "POST" && is_file(path))
 		file = retrieve_file(path);
-	}
 
 	//	Exec cgis
 	for (std::map<std::string, std::string>::iterator it = curr_loc.cgis.begin();
 			it != curr_loc.cgis.end(); ++it)
 	{
 		size_t	idx = path.rfind('.');
-		if (idx != std::string::npos && path.substr(idx) == it->first)
+		if (idx != std::string::npos && path.substr(idx) == it->first && is_file(path))
 			file = exec_cgi(path, it->second);
 	}
 
+	//	Check body size
+	if (file.size() > curr_loc.max_body_size)
+		error_code = 413;
+
+	//	Write response
 	return (make_response(file, error_code, path));
 }
 
@@ -131,27 +103,81 @@ std::string	ResponseHandler::make_response(std::string file, int error_code, std
 {
 	std::string	response;
 
+	//	Get error page
+	if (error_code != 200)
+	{
+		path = get_path(curr_loc.error_pages[error_code]);
+		if (check_path_access(path) == 200)
+			file = retrieve_file(path);
+		else
+			file = "";
+		if (file.size() > curr_loc.max_body_size)
+			file = "";
+	}
+
 	//	Headers
-   	response += "HTTP/1.1 ";
+   	response += request.protocol;
+	response += " ";
 	response += std::to_string(error_code);
 	response += " ";
 	response += ErrorResponses[error_code];
+
 	response += "\nDate: " + get_date();
 	response += "\nContent-Length: " + std::to_string(file.size());
 	response += "\nContent-Type: " + get_content_type(path);
-
-	//	If upload : set content disposition to attachment + filename
-	if (request.content_disposition == "form-data" && request.postvals["filename"] != "\"\"")
-		response += "\nContent-Disposition: attachment; filename=" + request.postvals["filename"];
+	response += "\r\n\r\n";
 
 	//	Body
-	response += "\r\n\r\n";
-	if (error_code != 204)
+	if (file != "")
 	{
 		response += file;
 		response += "\r\n\r\n";
 	}
 	return (response);
+}
+
+void	ResponseHandler::get_current_loc(void)
+{
+	ServerMembers	current_server;
+
+	//	Find correct server
+	for (size_t i = 0; i < servers.size(); ++i)
+	{
+		if (request.port == servers[i].port)
+		{
+			current_server = servers[i];
+			break ;
+		}
+	}
+
+	//	Find correct location in server
+	for (size_t i = 0; i < current_server.locations.size(); ++i)
+	{
+		if (request.location.find(current_server.locations[i].uri) == 0)
+		{
+			if (curr_loc.uri < current_server.locations[i].uri)
+				curr_loc = current_server.locations[i];
+		}
+	}
+}
+
+void	ResponseHandler::write_response(void)
+{
+	int			ret;
+	std::string	&buffer = http_responses[curr_sock];
+
+	ret = write(curr_sock, buffer.c_str(), buffer.size());
+	if (ret == -1)
+		throw std::runtime_error("Write failed.");
+
+	// Client disconnected
+	if (ret == 0)
+	{
+		//close_connection(socket);
+		return ;
+	}
+
+	buffer = buffer.substr(ret);
 }
 
 std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_path)
@@ -168,9 +194,12 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 	exec.push_back(file_path.c_str());
 	exec.push_back(0);
 
-	//for (size_t i = 0; i < request.env.size(); ++i)
-		//env.push_back(request.env[i].c_str());
-	//env.push_back(0);
+	for (std::map<std::string, std::string>::iterator it = request.postvals.begin();
+			it != request.postvals.end(); ++it)
+	{
+		env.push_back((it->first + "=" + it->second).c_str());
+	}
+	env.push_back(0);
 
 	//	Pipe and fork
 	if (pipe(fd) == -1)
@@ -185,14 +214,13 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 			throw std::runtime_error("Dup2 failed.");
 		execve(exec[0], (char **)&exec[0], (char **)&env[0]);
 		//	Print bad gateway file
-		std::string path = find_file_path(curr_loc.error_pages[502]);
+		std::string path = get_path(curr_loc.error_pages[502]);
 		std::cout << retrieve_file(path);
 		exit(0);
 	}
 	else
 	{
 		//	Read the output and return
-
 		wait(0);
 		bzero(buf, 65535);
 		if (read(fd[0], buf, 65535) == -1)
@@ -204,29 +232,12 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 	}
 }
 
-int	ResponseHandler::check_error_code(std::string path)
+int	ResponseHandler::check_method(void)
 {
-	//	Check if allowed method (405) or not implemented method (501)
-	if (is_method_implemented())
-	{
-		if (!is_method_allowed())
-			return (405);
-	}
-	else
+	if (!is_method_implemented())
 		return (501);
-	
-	//	Check if we can access to path
-	if (access(path.c_str(), F_OK) < 0)
-		return (404);
-
-	//	Check if read access
-	if (access(path.c_str(), R_OK) < 0)
-		return (403);
-
-	//	Check if path is a file; if not : autoindex, else 404
-	if (!is_file(path) && (curr_loc.autoindex == false || request.method != "GET"))
-		return (404);
-
+	if (!is_method_allowed())
+		return (405);
 	return (200);
 }
 
@@ -247,6 +258,32 @@ bool	ResponseHandler::is_method_implemented(void)
 	return (false);
 }
 	
+int	ResponseHandler::check_path_access(std::string path)
+{
+	//	Check if we can access to path
+	if (access(path.c_str(), F_OK) < 0)
+		return (404);
+
+	//	Check if path is a file or if folder is allowed
+	if (!is_file(path) && (curr_loc.autoindex == false || request.method != "GET"))
+		return (404);
+
+	//	Check if read access
+	if (access(path.c_str(), R_OK) < 0)
+		return (403);
+
+	return (200);
+}
+
+std::string	ResponseHandler::get_path(std::string path)
+{
+	char		cwd[256];
+
+	if (getcwd(cwd, 256) == NULL)
+		throw std::runtime_error("Getcwd failed.");
+	return (cwd + path);
+}
+
 std::string	ResponseHandler::retrieve_file(std::string path)
 {
     std::ostringstream	sstr;
@@ -256,19 +293,12 @@ std::string	ResponseHandler::retrieve_file(std::string path)
     return (sstr.str());
 }
 
-std::string	ResponseHandler::find_file_path(std::string path)
-{
-	char		cwd[256];
-
-	if (getcwd(cwd, 256) == NULL)
-		throw std::runtime_error("Getcwd failed.");
-	return (cwd + path);
-}
-
 bool	ResponseHandler::is_file(std::string path)
 {
 	struct stat	s;
 
+	if (access(path.c_str(), F_OK) < 0)
+		return (false);
 	if (stat(path.c_str(), &s) < 0)
 		throw std::runtime_error("Stat failed.");
 	return (S_ISREG(s.st_mode));
