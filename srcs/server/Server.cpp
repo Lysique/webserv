@@ -101,8 +101,15 @@ void	Server::write_connection(int socket)
 {
 	RequestMembers	rm = req_handler.getRequest(socket);
 
+	std::cout << rm << std::endl;
 	res_handler.manage_request(socket, rm);
-	close_connection(socket);
+
+	if (rm.parsed == true && res_handler.is_response_sent(socket))
+	{
+		req_handler.clear(socket);
+		//if (rm.connection == "close")
+			close_connection(socket);
+	}
 }
 
 void	Server::accept_connection(int socket)
@@ -127,7 +134,6 @@ void	Server::accept_connection(int socket)
 void	Server::close_connection(int socket)
 {
 	FD_CLR(socket, &current_sockets);
-	req_handler.clear(socket);
 	close(socket);
 }
 

@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/22 17:18:36 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 17:36:50 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
  #ifndef RESPONSEHANDLER_HPP
@@ -30,6 +30,7 @@ public:
 	~ResponseHandler();
 
 	void		manage_request(int socket, RequestMembers r);
+	bool		is_response_sent(int socket);
 
 private:
 

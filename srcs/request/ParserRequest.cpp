@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/22 17:23:48 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/22 17:44:41 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,6 @@ void	ParserRequest::manage_request(int fd)
 
 	if (ret == 0)
 	{
-		std::cout << "ERASE\n\n" << std::endl;
 		m_rms.erase(fd);
 		return ;
 	}
@@ -98,7 +97,7 @@ void	ParserRequest::parseHeader(std::string& line)
 
 void	ParserRequest::parseBody(std::string& line)
 {
-	if (line.find(curr_rm->boundary) != std::string::npos)
+	if (curr_rm->boundary != "" && line.find(curr_rm->boundary) != std::string::npos)
 		curr_rm->ctx = RequestMembers::BOUNDARY;
 	else
 		parseEnv(line);
