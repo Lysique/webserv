@@ -6,7 +6,7 @@
 #    By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/05/06 10:37:35 by tamighi           #+#    #+#              #
-#    Updated: 2022/07/14 15:06:26 by tamighi          ###   ########.fr        #
+#    Updated: 2022/07/24 11:31:03 by tamighi          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,7 +16,7 @@ FLAGS = -Wall -Werror -Wextra -std=c++98
 OBJ_DIR = objs/
 RM = rm -rf
 
-OBJS =  $(SRCS_OBJS) $(CONFIG_OBJS)  $(REQUEST_OBJS)  $(RESPON_OBJS) $(UTILS_OBJS) $(SERVER_OBJS)
+OBJS =  $(SRCS_OBJS) $(CONFIG_OBJS)  $(REQUEST_OBJS)  $(RESPON_OBJS) $(UTILS_OBJS) $(WEBSERV_OBJS)
 
 #### FILES
 
@@ -32,17 +32,17 @@ $(OBJ_DIR)%.o: $(SRCS_DIR)%.cpp
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(FLAGS) -o $@ -c $<
 
-#### SERVER FILES
+#### WEBSERV FILES
 
-SERVER_DIR = srcs/server/
-SERVER_FILES = Server.cpp
-SERVER_HEADERS = Server.hpp
+WEBSERV_DIR = srcs/webserv/
+WEBSERV_FILES = Webserv.cpp
+WEBSERV_HEADERS = Webserv.hpp
 
-SERVER_SRCS = $(addprefix $(SERVER_DIR), $(SERVER_FILES))
-SERVER_INCLUDES = $(addprefix $(SERVER_DIR), $(SERVER_HEADERS))
-SERVER_OBJS = $(addprefix $(OBJ_DIR), $(SERVER_FILES:.cpp=.o))
+WEBSERV_SRCS = $(addprefix $(WEBSERV_DIR), $(WEBSERV_FILES))
+WEBSERV_INCLUDES = $(addprefix $(WEBSERV_DIR), $(WEBSERV_HEADERS))
+WEBSERV_OBJS = $(addprefix $(OBJ_DIR), $(WEBSERV_FILES:.cpp=.o))
 
-$(OBJ_DIR)%.o: $(SERVER_DIR)%.cpp $(SERVER_DIR)%.hpp
+$(OBJ_DIR)%.o: $(WEBSERV_DIR)%.cpp $(WEBSERV_DIR)%.hpp
 	mkdir -p $(OBJ_DIR)
 	$(CC) $(FLAGS) -o $@ -c $<
 

@@ -6,11 +6,11 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/30 10:57:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/15 14:18:05 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/24 11:28:06 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "server/Server.hpp"
+#include "webserv/Webserv.hpp"
 #include "config/ParserConfig.hpp"
 
 int main(int argc, char **argv)
@@ -26,8 +26,8 @@ int main(int argc, char **argv)
         ParserConfig    			cf(argv[1]);
         std::vector<ServerMembers>	servers = cf.getConfig();
 
-		Server serv(servers);		
-        serv.run();
+		Webserv webserv(servers);		
+        webserv.run();
     }
     catch (std::exception& e)
     {

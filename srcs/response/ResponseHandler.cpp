@@ -6,40 +6,40 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/22 17:49:12 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/24 17:54:45 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ResponseHandler.hpp"
 
-ResponseHandler::ResponseHandler(std::vector<ServerMembers> s)
-	: servers(s)
+ResponseHandler::ResponseHandler(ServerMembers s)
+	: server(s)
 {
-	ErrorResponses[200] = "OK";
-	ErrorResponses[403] = "Forbidden";
-	ErrorResponses[404] = "Not Found";
-	ErrorResponses[405] = "Method Not Allowed";
-	ErrorResponses[413] = "Payload Too Large";
-	ErrorResponses[501] = "Not Implemented";
-	ErrorResponses[502] = "Bad Gateway";
+	error_responses[200] = "OK";
+	error_responses[403] = "Forbidden";
+	error_responses[404] = "Not Found";
+	error_responses[405] = "Method Not Allowed";
+	error_responses[413] = "Payload Too Large";
+	error_responses[501] = "Not Implemented";
+	error_responses[502] = "Bad Gateway";
 }
 
 ResponseHandler::~ResponseHandler()
 {
 }
 
-void ResponseHandler::manage_request(int socket, RequestMembers r)
+void ResponseHandler::manage_response(int socket, RequestMembers r)
 {
 	request = r;
 	curr_sock = socket;
 
-	http_responses[socket] = manage_response();
+	http_response = manage_response();
 	write_response();
 }
 
-bool	ResponseHandler::is_response_sent(int socket)
+bool	ResponseHandler::is_sent(void)
 {
-	if (http_responses[socket] == "")
+	if (http_response == "")
 		return (true);
 	return (false);
 }
@@ -51,12 +51,8 @@ std::string	ResponseHandler::manage_response(void)
 	std::string	file;
 
 	//	There is still data from previous write
-	if (http_responses[curr_sock] != "")
-		return (http_responses[curr_sock]);
-
-	//	The client is not done sending data
-	if (request.parsed == false)
-		return ("HTTP/1.1 100 Continue\r\n\r\n");
+	if (http_response != "")
+		return (http_response);
 
 	get_current_loc();
 
@@ -85,8 +81,9 @@ std::string	ResponseHandler::manage_response(void)
 		else
 			file = get_autoindex(path, request.location);
 	}
-	else if (request.method == "POST" && is_file(path))
-		file = retrieve_file(path);
+	//	Manage POST for uploads and all
+	else if (request.method == "POST")
+		file = manage_post_request(path);
 
 	//	Exec cgis
 	for (std::map<std::string, std::string>::iterator it = curr_loc.cgis.begin();
@@ -103,6 +100,19 @@ std::string	ResponseHandler::manage_response(void)
 
 	//	Write response
 	return (make_response(file, error_code, path));
+}
+
+void	ResponseHandler::get_current_loc(void)
+{
+	//	Find correct location in server
+	for (size_t i = 0; i < server.locations.size(); ++i)
+	{
+		if (request.location.find(server.locations[i].uri) == 0)
+		{
+			if (curr_loc.uri < server.locations[i].uri)
+				curr_loc = server.locations[i];
+		}
+	}
 }
 
 std::string	ResponseHandler::make_response(std::string file, int error_code, std::string path)
@@ -126,51 +136,24 @@ std::string	ResponseHandler::make_response(std::string file, int error_code, std
 	response += " ";
 	response += std::to_string(error_code);
 	response += " ";
-	response += ErrorResponses[error_code];
+	response += error_responses[error_code];
 
 	response += "\nDate: " + get_date();
 	response += "\nContent-Length: " + std::to_string(file.size());
 	response += "\nContent-Type: " + get_content_type(path);
+	if (cookie != "")
+		response += "\nSet-Cookie: " + cookie;
 	response += "\r\n\r\n";
 
 	//	Body
-	if (file != "")
-	{
-		response += file;
-		response += "\r\n\r\n";
-	}
+	response += file;
 	return (response);
-}
-
-void	ResponseHandler::get_current_loc(void)
-{
-	ServerMembers	current_server;
-
-	//	Find correct server
-	for (size_t i = 0; i < servers.size(); ++i)
-	{
-		if (request.port == servers[i].port)
-		{
-			current_server = servers[i];
-			break ;
-		}
-	}
-
-	//	Find correct location in server
-	for (size_t i = 0; i < current_server.locations.size(); ++i)
-	{
-		if (request.location.find(current_server.locations[i].uri) == 0)
-		{
-			if (curr_loc.uri < current_server.locations[i].uri)
-				curr_loc = current_server.locations[i];
-		}
-	}
 }
 
 void	ResponseHandler::write_response(void)
 {
 	int			ret;
-	std::string	&buffer = http_responses[curr_sock];
+	std::string	&buffer = http_response;
 
 	ret = write(curr_sock, buffer.c_str(), buffer.size());
 	if (ret == -1)
@@ -182,8 +165,25 @@ void	ResponseHandler::write_response(void)
 		//close_connection(socket);
 		return ;
 	}
-
 	buffer = buffer.substr(ret);
+}
+
+std::string	ResponseHandler::manage_post_request(std::string path)
+{
+	//	Check for uploads;
+	for (std::vector<RequestMembers::s_postdata>::iterator it = request.postdata.begin();
+		it != request.postdata.end(); ++it)
+	{
+		if (it->file == true)
+			;
+	}
+	
+	//	Add potential cookies
+
+	if (is_file(path))
+		return (retrieve_file(path));
+	else
+		return ("");
 }
 
 std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_path)
@@ -200,12 +200,20 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 	exec.push_back(file_path.c_str());
 	exec.push_back(0);
 
-	for (std::map<std::string, std::string>::iterator it = request.postvals.begin();
-			it != request.postvals.end(); ++it)
+	for (std::vector<RequestMembers::s_postdata>::iterator it = request.postdata.begin();
+		it < request.postdata.end(); ++it)
+	{
+		if (it->env == true)
+			env.push_back((it->key + "=" + it->value).c_str());
+	}
+
+	for (std::map<std::string, std::string>::iterator it = request.cookies.begin();
+		it != request.cookies.end(); ++it)
 	{
 		env.push_back((it->first + "=" + it->second).c_str());
 	}
 	env.push_back(0);
+
 
 	//	Pipe and fork
 	if (pipe(fd) == -1)
@@ -219,6 +227,7 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 		if (dup2(fd[1], 1) == -1)
 			throw std::runtime_error("Dup2 failed.");
 		execve(exec[0], (char **)&exec[0], (char **)&env[0]);
+
 		//	Print bad gateway file
 		std::string path = get_path(curr_loc.error_pages[502]);
 		std::cout << retrieve_file(path);
@@ -271,7 +280,7 @@ int	ResponseHandler::check_path_access(std::string path)
 		return (404);
 
 	//	Check if path is a file or if folder is allowed
-	if (!is_file(path) && (curr_loc.autoindex == false || request.method != "GET"))
+	if (!is_file(path) && curr_loc.autoindex == false && request.method == "GET")
 		return (404);
 
 	//	Check if read access

@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:17 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/22 12:58:55 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/24 17:10:43 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,18 +25,17 @@
 
 struct RequestMembers
 {
-	//	Context enum for request members
-	enum Context
-	{
-		HEADER,
-		BODY,
-		BOUNDARY,
-		CONTENT,
-		END
+
+	//	Struct for postdata
+	struct s_postdata {
+		bool		file;
+		bool		env;
+		std::string	key;
+		std::string	value;
 	};
 
 	RequestMembers(void)
-		: port(80), content_length(0), header_length(0), parsed(false), ctx(HEADER)
+		: port(0), content_length(0), header_length(0)
 	{
 	}
 
@@ -45,22 +44,16 @@ struct RequestMembers
 	std::string							location;
 	std::string							protocol;
 
+	std::string							connection;
 	std::string							host;
 	int									port;
 
 	size_t								content_length;
-	std::string							connection;
-	std::string							boundary;
+	size_t								header_length;
+	std::map<std::string, std::string>	cookies;
 
 	//	Request body
-	std::string							content_disposition;
-	std::map<std::string, std::string>	postvals;
-	std::string							upload;
-
-	//	Additional data
-	size_t								header_length;
-	bool								parsed;
-	Context								ctx;
+	std::vector<s_postdata>				postdata;
 };
 
 class ParserRequest
@@ -68,42 +61,58 @@ class ParserRequest
 
 public:
 	//	Public member functions
+
 	ParserRequest(void);
 
 	~ParserRequest(void);
 
-	void	manage_request(int fd);
+	void					manage_request(int fd);
+	bool					is_all_received(void);
+	void					clear(void);
+	const RequestMembers&	getRequest(void);
 
-	const RequestMembers&	getRequest(int fd);
-
-	void	clear(int fd);
 private:
-	//	Private member functions
+			//	Private member functions
 	
-	//	Main parsing
-	void	parse(std::string buffer);
+	std::string	read_client(int fd);
+	void		parse(std::string buffer);
 
-	void	parseHeader(std::string& line);
-	void	parseBody(std::string& line);
-	void	parseBoundary(std::string& line);
-	void	parseContent(std::string& line);
+	//	Main parsing
+	void		parseHeader(std::string& line);
+	void		parseBody(std::string& line);
+	void		parseBoundary(std::string& line);
+	void		parseContent(std::string& line);
 
 	//	Header parsing
-	void	parseMethod(std::stringstream& ss, std::string& word);
-	void	parseHost(std::stringstream& ss);
-	void	parseContentLength(std::stringstream& ss);
-	void	parseContentType(std::stringstream& ss);
-	void	parseConnection(std::stringstream& ss);
+	void		parseMethod(std::stringstream& ss, std::string& word);
+	void		parseHost(std::stringstream& ss);
+	void		parseContentLength(std::stringstream& ss);
+	void		parseContentType(std::stringstream& ss);
+	void		parseConnection(std::stringstream& ss);
+	void		parseCookie(std::stringstream& ss);
 
 	//	Body parsing
-	void	parseEnv(std::string& line);
+	void		parsePost(std::string& line);
 
 	//	Boundary parsing
-	void	parseContentDisposition(std::stringstream& ss);
+	void		parseContentDisposition(std::stringstream& ss);
 
-	//	Private members
-	std::map<int, RequestMembers>	m_rms;
-	RequestMembers					*curr_rm;
+	//	Context for parsing
+	enum Context
+	{
+		HEADER,
+		BODY,
+		BOUNDARY,
+		CONTENT
+	};
+
+			//	Private variables
+	RequestMembers					m_rm;
+
+	Context							ctx;
+	std::string						boundary;
+	bool							all_received;
+	size_t							content_received;
 };
 
 std::ostream&	operator<<(std::ostream &ostr, RequestMembers& rm);
