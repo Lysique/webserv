@@ -4,11 +4,22 @@
 </head>
 <body>
 <?php
-echo getenv('SHELL');
-echo "<h2>First Name " . getenv('fname')  . "</h2>";
-echo "<h2>Last name " . getenv('lname')  . "</h2>";
-echo "<h2>Second name " . getenv('second')  . "</h2>";
-echo "<h2>Third name " . getenv('Third')  . "</h2>";
+  if (getenv('username'))
+  {
+      echo '<h2>Hello ' . getenv('username') . ', here is a beautifull dog !<h/2>';
+      ?>
+      <img src="Dog.png">
+      <form action="login.php" method="post">
+      <input id='submit' type='submit' name='logout' value='logout'>
+      <?php
+  }
+  else
+  {
+    echo '<h1>You have to be logged in to see a beautifull dog !</h1>';
+    ?>   
+    <p><a href="login.php">Login</a></p>
+    <?php
+  }
 ?>
 </body>
 </html>

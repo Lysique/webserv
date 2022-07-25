@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/25 10:56:14 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/25 13:55:47 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
  #ifndef RESPONSEHANDLER_HPP
@@ -43,7 +43,7 @@ private:
 	void		get_current_loc(void);
 	void		write_response(void);
 	std::string	exec_cgi(std::string file_path, std::string exec_path);
-	std::string	manage_post_request(std::string path, int &error_code);
+	std::string	manage_post_request(std::string &path);
 	void		upload_file(std::string filename, std::string data);
 
 	//	Error code management

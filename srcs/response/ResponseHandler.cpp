@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/25 12:20:04 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/25 14:23:26 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ void ResponseHandler::manage_response(int socket, RequestMembers r)
 	curr_sock = socket;
 
 	http_response = manage_response();
-	//std::cout << http_response;
+	std::cout << http_response;
 	write_response();
 }
 
@@ -86,7 +86,7 @@ std::string	ResponseHandler::manage_response(void)
 	}
 	//	Manage POST for uploads and all
 	else if (request.method == "POST")
-		file = manage_post_request(path, error_code);
+		file = manage_post_request(path);
 
 	//	Exec cgis
 	for (std::map<std::string, std::string>::iterator it = curr_loc.cgis.begin();
@@ -130,18 +130,15 @@ std::string	ResponseHandler::make_response(std::string file, int error_code, std
 	response += error_responses[error_code];
 
 	response += "\nDate: " + get_date();
-	if (error_code == 200)
-		response += "\nContent-Length: " + std::to_string(file.size());
-	else
-		response += "\nContent-Length: " + std::to_string(request.big_datas.back().data.size());
-	if (error_code == 200)
-		response += "\nContent-Type: " + get_content_type(path);
+	response += "\nContent-Length: " + std::to_string(file.size());
+	response += "\nContent-Type: " + get_content_type(path);
 	if (cookie != "")
 		response += "\nSet-Cookie: " + cookie;
 	response += "\r\n\r\n";
 
 	//	Body
 	response += file;
+	response += "\r\n";
 	return (response);
 }
 
@@ -174,6 +171,7 @@ std::string	ResponseHandler::http_error(int error_code)
 
 	//	Body
 	response += file;
+	response += "/r/n";
 	return (response);
 }
 
@@ -195,18 +193,41 @@ void	ResponseHandler::write_response(void)
 	buffer = buffer.substr(ret);
 }
 
-std::string	ResponseHandler::manage_post_request(std::string path, int &error_code)
+std::string	ResponseHandler::manage_post_request(std::string &path)
 {
 	for (size_t i = 0; i < request.big_datas.size(); ++i)
 	{
 		if (request.big_datas[i].filename != "")
 		{
 			upload_file(request.big_datas[i].filename, request.big_datas[i].data);
-			error_code = 201;
+			path = ".html";
+			return ("<h1>File has been uploaded successfully</h1>");
 		}
 	}
 	
 	//	Add potential cookies
+	if (request.location == "/login.php")
+	{
+		for (size_t i = 0; i < request.small_datas.size(); ++i)
+		{
+			std::string data = request.small_datas[i];
+			if (data.substr(0, 9) == "username=")
+				cookie = data + "; Expires=Wed, 21 Oct 2025 07:28:00 GMT; Path=/";
+			else if (data == "logout=logout")
+			{
+				cookie = "username=xx; Expires=Wed, 21 Oct 2020 07:28:00 GMT; Path=/";
+				for (std::vector<std::string>::iterator it = request.cookies.begin();
+						it != request.cookies.end(); ++it)
+				{
+					if (it->substr(0, 9) == "username=")
+					{
+						request.cookies.erase(it);
+						break ;
+					}
+				}
+			}
+		}
+	}
 
 	if (is_file(path))
 		return (retrieve_file(path));
