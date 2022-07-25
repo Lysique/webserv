@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:17 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/24 17:10:43 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/25 11:24:21 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,15 +27,14 @@ struct RequestMembers
 {
 
 	//	Struct for postdata
-	struct s_postdata {
-		bool		file;
-		bool		env;
-		std::string	key;
-		std::string	value;
+	struct big_data {
+		std::string	filename;
+		std::string	envname;
+		std::string	data;
 	};
 
 	RequestMembers(void)
-		: port(0), content_length(0), header_length(0)
+		: port(0), content_length(0)
 	{
 	}
 
@@ -44,16 +43,15 @@ struct RequestMembers
 	std::string							location;
 	std::string							protocol;
 
-	std::string							connection;
 	std::string							host;
 	int									port;
 
 	size_t								content_length;
-	size_t								header_length;
-	std::map<std::string, std::string>	cookies;
+	std::vector<std::string>			cookies;
 
 	//	Request body
-	std::vector<s_postdata>				postdata;
+	std::vector<big_data>				big_datas;
+	std::vector<std::string>			small_datas;
 };
 
 class ParserRequest
@@ -88,7 +86,6 @@ private:
 	void		parseHost(std::stringstream& ss);
 	void		parseContentLength(std::stringstream& ss);
 	void		parseContentType(std::stringstream& ss);
-	void		parseConnection(std::stringstream& ss);
 	void		parseCookie(std::stringstream& ss);
 
 	//	Body parsing
@@ -111,7 +108,7 @@ private:
 
 	Context							ctx;
 	std::string						boundary;
-	bool							all_received;
+	bool							has_read;
 	size_t							content_received;
 };
 

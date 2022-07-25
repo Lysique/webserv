@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/24 17:54:45 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/25 12:20:04 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,8 @@ ResponseHandler::ResponseHandler(ServerMembers s)
 	: server(s)
 {
 	error_responses[200] = "OK";
+	error_responses[201] = "Created";
+	error_responses[204] = "No Content";
 	error_responses[403] = "Forbidden";
 	error_responses[404] = "Not Found";
 	error_responses[405] = "Method Not Allowed";
@@ -34,6 +36,7 @@ void ResponseHandler::manage_response(int socket, RequestMembers r)
 	curr_sock = socket;
 
 	http_response = manage_response();
+	//std::cout << http_response;
 	write_response();
 }
 
@@ -59,7 +62,7 @@ std::string	ResponseHandler::manage_response(void)
 	//	Check if correct method
 	error_code = check_method();
 	if (error_code != 200)
-		return (make_response(file, error_code, path));
+		return (http_error(error_code));
 
 	//	Add index
 	if (curr_loc.uri == request.location && curr_loc.autoindex == false)
@@ -69,7 +72,7 @@ std::string	ResponseHandler::manage_response(void)
 	path = get_path(curr_loc.root + request.location);
 	error_code = check_path_access(path);
 	if (error_code != 200)
-		return (make_response(file, error_code, path));
+		return (http_error(error_code));
 
 	//	Manage requests
 	if (request.method == "DELETE")
@@ -83,7 +86,7 @@ std::string	ResponseHandler::manage_response(void)
 	}
 	//	Manage POST for uploads and all
 	else if (request.method == "POST")
-		file = manage_post_request(path);
+		file = manage_post_request(path, error_code);
 
 	//	Exec cgis
 	for (std::map<std::string, std::string>::iterator it = curr_loc.cgis.begin();
@@ -96,7 +99,7 @@ std::string	ResponseHandler::manage_response(void)
 
 	//	Check body size
 	if (file.size() > curr_loc.max_body_size)
-		error_code = 413;
+		return (http_error(413));
 
 	//	Write response
 	return (make_response(file, error_code, path));
@@ -119,17 +122,43 @@ std::string	ResponseHandler::make_response(std::string file, int error_code, std
 {
 	std::string	response;
 
+	//	Headers
+   	response += request.protocol;
+	response += " ";
+	response += std::to_string(error_code);
+	response += " ";
+	response += error_responses[error_code];
+
+	response += "\nDate: " + get_date();
+	if (error_code == 200)
+		response += "\nContent-Length: " + std::to_string(file.size());
+	else
+		response += "\nContent-Length: " + std::to_string(request.big_datas.back().data.size());
+	if (error_code == 200)
+		response += "\nContent-Type: " + get_content_type(path);
+	if (cookie != "")
+		response += "\nSet-Cookie: " + cookie;
+	response += "\r\n\r\n";
+
+	//	Body
+	response += file;
+	return (response);
+}
+
+std::string	ResponseHandler::http_error(int error_code)
+{
+	std::string response;
+	std::string	path;
+	std::string	file;
+
 	//	Get error page
-	if (error_code != 200)
-	{
-		path = get_path(curr_loc.error_pages[error_code]);
-		if (check_path_access(path) == 200)
-			file = retrieve_file(path);
-		else
-			file = "";
-		if (file.size() > curr_loc.max_body_size)
-			file = "";
-	}
+	path = get_path(curr_loc.error_pages[error_code]);
+	if (check_path_access(path) == 200)
+		file = retrieve_file(path);
+	else
+		file = "";
+	if (file.size() > curr_loc.max_body_size)
+		file = "";
 
 	//	Headers
    	response += request.protocol;
@@ -141,8 +170,6 @@ std::string	ResponseHandler::make_response(std::string file, int error_code, std
 	response += "\nDate: " + get_date();
 	response += "\nContent-Length: " + std::to_string(file.size());
 	response += "\nContent-Type: " + get_content_type(path);
-	if (cookie != "")
-		response += "\nSet-Cookie: " + cookie;
 	response += "\r\n\r\n";
 
 	//	Body
@@ -168,14 +195,15 @@ void	ResponseHandler::write_response(void)
 	buffer = buffer.substr(ret);
 }
 
-std::string	ResponseHandler::manage_post_request(std::string path)
+std::string	ResponseHandler::manage_post_request(std::string path, int &error_code)
 {
-	//	Check for uploads;
-	for (std::vector<RequestMembers::s_postdata>::iterator it = request.postdata.begin();
-		it != request.postdata.end(); ++it)
+	for (size_t i = 0; i < request.big_datas.size(); ++i)
 	{
-		if (it->file == true)
-			;
+		if (request.big_datas[i].filename != "")
+		{
+			upload_file(request.big_datas[i].filename, request.big_datas[i].data);
+			error_code = 201;
+		}
 	}
 	
 	//	Add potential cookies
@@ -184,6 +212,24 @@ std::string	ResponseHandler::manage_post_request(std::string path)
 		return (retrieve_file(path));
 	else
 		return ("");
+}
+
+void	ResponseHandler::upload_file(std::string filename, std::string data)
+{
+	int			fd;
+	std::string	path;
+
+	//data.pop_back();
+	if (request.location.back() != '/')
+		filename.insert(0, "/");
+	path = curr_loc.root.substr(1) + request.location + filename;
+	fd = open(path.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+	if (fd == -1)
+		throw std::runtime_error("Open failed.");
+	if (write(fd, data.c_str(), data.size()) == -1)
+		throw std::runtime_error("Write failed.");
+	//std::cout << (int)(data.back()) << std::endl;
+	close(fd);
 }
 
 std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_path)
@@ -200,18 +246,11 @@ std::string	ResponseHandler::exec_cgi(std::string file_path, std::string exec_pa
 	exec.push_back(file_path.c_str());
 	exec.push_back(0);
 
-	for (std::vector<RequestMembers::s_postdata>::iterator it = request.postdata.begin();
-		it < request.postdata.end(); ++it)
-	{
-		if (it->env == true)
-			env.push_back((it->key + "=" + it->value).c_str());
-	}
+	for (size_t i = 0; i < request.small_datas.size(); ++i)
+		env.push_back(request.small_datas[i].c_str());
 
-	for (std::map<std::string, std::string>::iterator it = request.cookies.begin();
-		it != request.cookies.end(); ++it)
-	{
-		env.push_back((it->first + "=" + it->second).c_str());
-	}
+	for (size_t i = 0; i < request.cookies.size(); ++i)
+		env.push_back(request.cookies[i].c_str());
 	env.push_back(0);
 
 

@@ -6,14 +6,14 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/24 17:46:47 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/25 12:14:49 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ParserRequest.hpp"
 
 ParserRequest::ParserRequest(void)
-	: ctx(HEADER), all_received(false), content_received(0)
+	: ctx(HEADER), has_read(false), content_received(0)
 {
 }
 
@@ -26,19 +26,22 @@ void	ParserRequest::manage_request(int fd)
 	std::string	request;
 
 	request = read_client(fd);
+	has_read = true;
+	//std::cout << request << std::endl;
 	parse(request);
+	std::cout << m_rm;
 }
 
 bool	ParserRequest::is_all_received(void)
 {
-	return (all_received);
+	return (has_read && content_received == m_rm.content_length);
 }
 
 void	ParserRequest::clear(void)
 {
 	RequestMembers	new_members;
 
-	all_received = false;
+	has_read = false;
 	content_received = 0;
 	boundary = "";
 	ctx = HEADER;
@@ -64,6 +67,7 @@ std::string	ParserRequest::read_client(int fd)
 	if (ret == 0)
 		return "";
 
+	content_received += ret;
 	std::string	str_buff(buffer, ret);
 	return (str_buff);
 }
@@ -84,7 +88,6 @@ void	ParserRequest::parse(std::string buffer)
 		else if (ctx == CONTENT)
 			parseContent(line);
 	}
-	all_received = true;
 }
 
 void	ParserRequest::parseHeader(std::string& line)
@@ -92,6 +95,7 @@ void	ParserRequest::parseHeader(std::string& line)
 	std::stringstream	ss(line);
 	std::string			word;
 
+	content_received -= line.size() + 1;
 	ss >> word;
 	if (Utils::isValidMethod(word))
 		parseMethod(ss, word);
@@ -101,8 +105,6 @@ void	ParserRequest::parseHeader(std::string& line)
 		parseContentLength(ss);
 	else if (word == "Content-Type:")
 		parseContentType(ss);
-	else if (word == "Connection:")
-		parseConnection(ss);
 	else if (word == "Cookie:")
 		parseCookie(ss);
 	else if (word == "")
@@ -111,7 +113,6 @@ void	ParserRequest::parseHeader(std::string& line)
 
 void	ParserRequest::parseBody(std::string& line)
 {
-	content_received += line.size();
 	if (boundary != "" && line.find(boundary) != std::string::npos)
 		ctx = BOUNDARY;
 	else
@@ -123,24 +124,19 @@ void	ParserRequest::parseBoundary(std::string& line)
 	std::stringstream	ss(line);
 	std::string			word;
 
-	content_received += line.size();
 	ss >> word;
 	if (word == "Content-Disposition:")
 		parseContentDisposition(ss);
 	else if (word == "")
-	{
-		content_received += 4;
 		ctx = CONTENT;
-	}
 }
 
 void	ParserRequest::parseContent(std::string& line)
 {
-	content_received += line.size();
 	if (line.find(boundary) != std::string::npos)
 		ctx = BOUNDARY;
 	else
-		m_rm.postdata.back().value += line;
+		m_rm.big_datas.back().data += line;
 }
 
 void	ParserRequest::parseMethod(std::stringstream& ss, std::string& word)
@@ -191,77 +187,49 @@ void	ParserRequest::parseContentType(std::stringstream& ss)
 	}
 }
 
-void	ParserRequest::parseConnection(std::stringstream& ss)
-{
-	ss >> m_rm.connection;
-}
-
 void	ParserRequest::parseCookie(std::stringstream& ss)
 {
 	std::string	word;
-	size_t		equal;
-	std::string	key;
-	std::string	value;
 
 	while (ss >> word)
 	{
 		if (word.back() == ';')
 			word.pop_back();
-		equal = word.find("=");
-		key = word.substr(0, equal);
-		value = word.substr(equal + 1);
-		m_rm.cookies[key] = value;
+		m_rm.cookies.push_back(word);
 	}
 }
 
 void	ParserRequest::parsePost(std::string& line)
 {
-	size_t		equal;
 	size_t		next = 0;
 
 	while (next != std::string::npos)
 	{
-		RequestMembers::s_postdata	data;
-
-		equal = line.find("=");
 		next = line.find("&");
-
-		data.env = true;
-		data.file = false;
-		data.key = line.substr(0, equal);
-		data.value = line.substr(equal + 1, next - (equal + 1));
-
-		m_rm.postdata.push_back(data);
+		m_rm.small_datas.push_back(line.substr(0, next));
 		line = line.substr(next + 1, line.size());
 	}
 }
 
 void	ParserRequest::parseContentDisposition(std::stringstream& ss)
 {
-	RequestMembers::s_postdata	data;
-	std::string					value;
-	std::string					key;
+	RequestMembers::big_data	data;
 	std::string					word;
 	size_t						equal;
 
 	ss >> word;
-	data.env = false;
-	data.file = false;
-	while (ss >> word)
+	ss >> word;
+	if (word.back() == ';')
+		word.pop_back();
+	equal = word.find("=");
+	data.envname = word.substr(equal + 1);
+	if (ss >> word)
 	{
-		if (word.back() == ';')
-			word.pop_back();
-
 		equal = word.find("=");
-		key = word.substr(0, equal);
-		value = word.substr(equal + 1);
-
-		if (key == "filename")
-			data.file = true;
-
-		data.key = value;
+		data.filename = word.substr(equal + 2);
+		data.filename.pop_back();
 	}
-	m_rm.postdata.push_back(data);
+	m_rm.big_datas.push_back(data);
 }
 
 std::ostream&	operator<<(std::ostream &ostr, RequestMembers& rm)
@@ -272,8 +240,20 @@ std::ostream&	operator<<(std::ostream &ostr, RequestMembers& rm)
 	ostr << "Protocol : " << rm.protocol << std::endl;
 
 	ostr << "Host : " << rm.host << ", port : " << rm.port << std::endl;
+
 	ostr << "Content_length : " << rm.content_length << std::endl;
-	ostr << "Connection : " << rm.connection << std::endl;
+	ostr << "Cookies :\n";
+	for (size_t i = 0; i < rm.cookies.size(); ++i)
+		std::cout << rm.cookies[i] + " ";
+	ostr << "\n";
+	ostr << "Files :\n";
+	for (size_t i = 0; i < rm.big_datas.size(); ++i)
+		std::cout << rm.big_datas[i].filename + " ";
+	ostr << "\n";
+	ostr << "Envir :\n";
+	for (size_t i = 0; i < rm.small_datas.size(); ++i)
+		ostr << rm.small_datas[i] + " ";
+	ostr << "\n";
 	ostr << "\n";
 	return (ostr);;
 }
