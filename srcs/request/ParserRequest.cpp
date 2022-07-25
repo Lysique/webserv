@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/25 12:14:49 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/25 15:43:42 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ void	ParserRequest::manage_request(int fd)
 	has_read = true;
 	//std::cout << request << std::endl;
 	parse(request);
-	std::cout << m_rm;
+	//std::cout << m_rm;
 }
 
 bool	ParserRequest::is_all_received(void)
@@ -68,11 +68,11 @@ std::string	ParserRequest::read_client(int fd)
 		return "";
 
 	content_received += ret;
-	std::string	str_buff(buffer, ret);
-	return (str_buff);
+
+	return (std::string(buffer, ret));
 }
 
-void	ParserRequest::parse(std::string buffer)
+void	ParserRequest::parse(std::string &buffer)
 {
 	std::string			line;
 	std::stringstream	ss(buffer);
@@ -136,7 +136,7 @@ void	ParserRequest::parseContent(std::string& line)
 	if (line.find(boundary) != std::string::npos)
 		ctx = BOUNDARY;
 	else
-		m_rm.big_datas.back().data += line;
+		m_rm.big_datas.back().data += line + "\n";
 }
 
 void	ParserRequest::parseMethod(std::stringstream& ss, std::string& word)

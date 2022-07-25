@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:17 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/25 11:24:21 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/25 15:34:19 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,7 +73,7 @@ private:
 			//	Private member functions
 	
 	std::string	read_client(int fd);
-	void		parse(std::string buffer);
+	void		parse(std::string &buffer);
 
 	//	Main parsing
 	void		parseHeader(std::string& line);

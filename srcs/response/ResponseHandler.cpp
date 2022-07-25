@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/25 14:23:26 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/25 15:05:46 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ void ResponseHandler::manage_response(int socket, RequestMembers r)
 	curr_sock = socket;
 
 	http_response = manage_response();
-	std::cout << http_response;
+	//std::cout << http_response;
 	write_response();
 }
 
