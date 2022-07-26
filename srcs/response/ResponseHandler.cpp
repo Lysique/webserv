@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/26 09:50:48 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/26 10:46:06 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,7 +64,7 @@ std::string	ResponseHandler::get_response(void)
 		return (http_error(error_code));
 
 	//	Add index
-	if (curr_loc.uri == request.location && curr_loc.autoindex == false)
+	if (request.method == "GET" && curr_loc.uri == request.location && curr_loc.autoindex == false)
 		request.location += curr_loc.index;
 
 	//	Check if correct path
@@ -75,7 +75,11 @@ std::string	ResponseHandler::get_response(void)
 
 	//	Manage requests
 	if (request.method == "DELETE")
-		remove(path.c_str());
+	{
+		if (remove(path.c_str()))
+			return (http_error(404));
+	}
+
 	else if (request.method == "GET")
 	{
 		if (is_file(path))
