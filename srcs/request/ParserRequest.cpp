@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:11 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/25 15:43:42 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/26 09:49:24 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,26 +26,14 @@ void	ParserRequest::manage_request(int fd)
 	std::string	request;
 
 	request = read_client(fd);
+	whole_buff += request;
 	has_read = true;
-	//std::cout << request << std::endl;
 	parse(request);
-	//std::cout << m_rm;
 }
 
 bool	ParserRequest::is_all_received(void)
 {
 	return (has_read && content_received == m_rm.content_length);
-}
-
-void	ParserRequest::clear(void)
-{
-	RequestMembers	new_members;
-
-	has_read = false;
-	content_received = 0;
-	boundary = "";
-	ctx = HEADER;
-	m_rm = new_members;
 }
 
 const RequestMembers&	ParserRequest::getRequest(void)
@@ -86,7 +74,10 @@ void	ParserRequest::parse(std::string &buffer)
 		else if (ctx == BOUNDARY)
 			parseBoundary(line);
 		else if (ctx == CONTENT)
-			parseContent(line);
+		{
+			parseFile();
+			break ;
+		}
 	}
 }
 
@@ -131,12 +122,20 @@ void	ParserRequest::parseBoundary(std::string& line)
 		ctx = CONTENT;
 }
 
-void	ParserRequest::parseContent(std::string& line)
+void	ParserRequest::parseFile(void)
 {
-	if (line.find(boundary) != std::string::npos)
-		ctx = BOUNDARY;
-	else
-		m_rm.big_datas.back().data += line + "\n";
+	if (m_rm.post_file.filename == "" || is_all_received() == false)
+		return ;
+
+	std::string	file;
+	size_t		idx;
+
+	idx = whole_buff.find("\r\n\r\n");
+	idx = whole_buff.find("\r\n\r\n", idx + 1);
+	file = whole_buff.substr(idx + 4);
+	idx = file.find("------" + boundary);
+	file = file.substr(0, idx - 2);
+	m_rm.post_file.data = file;
 }
 
 void	ParserRequest::parseMethod(std::stringstream& ss, std::string& word)
@@ -213,9 +212,9 @@ void	ParserRequest::parsePost(std::string& line)
 
 void	ParserRequest::parseContentDisposition(std::stringstream& ss)
 {
-	RequestMembers::big_data	data;
-	std::string					word;
-	size_t						equal;
+	struct RequestMembers::post_file	data;
+	std::string							word;
+	size_t								equal;
 
 	ss >> word;
 	ss >> word;
@@ -229,7 +228,7 @@ void	ParserRequest::parseContentDisposition(std::stringstream& ss)
 		data.filename = word.substr(equal + 2);
 		data.filename.pop_back();
 	}
-	m_rm.big_datas.push_back(data);
+	m_rm.post_file = data;
 }
 
 std::ostream&	operator<<(std::ostream &ostr, RequestMembers& rm)
@@ -244,11 +243,9 @@ std::ostream&	operator<<(std::ostream &ostr, RequestMembers& rm)
 	ostr << "Content_length : " << rm.content_length << std::endl;
 	ostr << "Cookies :\n";
 	for (size_t i = 0; i < rm.cookies.size(); ++i)
-		std::cout << rm.cookies[i] + " ";
+		ostr << rm.cookies[i] + " ";
 	ostr << "\n";
-	ostr << "Files :\n";
-	for (size_t i = 0; i < rm.big_datas.size(); ++i)
-		std::cout << rm.big_datas[i].filename + " ";
+	ostr << "File : " << rm.post_file.filename << "\n";
 	ostr << "\n";
 	ostr << "Envir :\n";
 	for (size_t i = 0; i < rm.small_datas.size(); ++i)

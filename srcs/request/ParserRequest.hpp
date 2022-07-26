@@ -6,7 +6,7 @@
 /*   By: fejjed <fejjed@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/10 12:52:17 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/25 15:34:19 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/26 09:50:18 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ struct RequestMembers
 {
 
 	//	Struct for postdata
-	struct big_data {
+	struct post_file {
 		std::string	filename;
 		std::string	envname;
 		std::string	data;
@@ -50,7 +50,7 @@ struct RequestMembers
 	std::vector<std::string>			cookies;
 
 	//	Request body
-	std::vector<big_data>				big_datas;
+	post_file							post_file;
 	std::vector<std::string>			small_datas;
 };
 
@@ -66,7 +66,6 @@ public:
 
 	void					manage_request(int fd);
 	bool					is_all_received(void);
-	void					clear(void);
 	const RequestMembers&	getRequest(void);
 
 private:
@@ -79,7 +78,6 @@ private:
 	void		parseHeader(std::string& line);
 	void		parseBody(std::string& line);
 	void		parseBoundary(std::string& line);
-	void		parseContent(std::string& line);
 
 	//	Header parsing
 	void		parseMethod(std::stringstream& ss, std::string& word);
@@ -89,10 +87,10 @@ private:
 	void		parseCookie(std::stringstream& ss);
 
 	//	Body parsing
+	void		parseContentDisposition(std::stringstream& ss);
+	void		parseFile(void);
 	void		parsePost(std::string& line);
 
-	//	Boundary parsing
-	void		parseContentDisposition(std::stringstream& ss);
 
 	//	Context for parsing
 	enum Context
@@ -110,6 +108,7 @@ private:
 	std::string						boundary;
 	bool							has_read;
 	size_t							content_received;
+	std::string						whole_buff;
 };
 
 std::ostream&	operator<<(std::ostream &ostr, RequestMembers& rm);

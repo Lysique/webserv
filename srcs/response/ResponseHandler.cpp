@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:46 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/25 15:05:46 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/26 09:50:48 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,8 +35,7 @@ void ResponseHandler::manage_response(int socket, RequestMembers r)
 	request = r;
 	curr_sock = socket;
 
-	http_response = manage_response();
-	//std::cout << http_response;
+	http_response = get_response();
 	write_response();
 }
 
@@ -47,7 +46,7 @@ bool	ResponseHandler::is_sent(void)
 	return (false);
 }
 
-std::string	ResponseHandler::manage_response(void)
+std::string	ResponseHandler::get_response(void)
 {
 	int			error_code;
 	std::string	path;
@@ -195,18 +194,16 @@ void	ResponseHandler::write_response(void)
 
 std::string	ResponseHandler::manage_post_request(std::string &path)
 {
-	for (size_t i = 0; i < request.big_datas.size(); ++i)
+	//	Uploads
+	if (request.post_file.filename != "")
 	{
-		if (request.big_datas[i].filename != "")
-		{
-			upload_file(request.big_datas[i].filename, request.big_datas[i].data);
-			path = ".html";
-			return ("<h1>File has been uploaded successfully</h1>");
-		}
+		upload_file(request.post_file.filename, request.post_file.data);
+		path = ".html";
+		return ("<h1>File has been uploaded successfully</h1>");
 	}
 	
 	//	Add potential cookies
-	if (request.location == "/login.php")
+	if (request.location == "/login.php" || request.location == "/other.php")
 	{
 		for (size_t i = 0; i < request.small_datas.size(); ++i)
 		{
@@ -249,7 +246,6 @@ void	ResponseHandler::upload_file(std::string filename, std::string data)
 		throw std::runtime_error("Open failed.");
 	if (write(fd, data.c_str(), data.size()) == -1)
 		throw std::runtime_error("Write failed.");
-	//std::cout << (int)(data.back()) << std::endl;
 	close(fd);
 }
 

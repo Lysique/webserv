@@ -6,7 +6,7 @@
 /*   By: tamighi <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/07/07 10:42:05 by tamighi           #+#    #+#             */
-/*   Updated: 2022/07/25 13:55:47 by tamighi          ###   ########.fr       */
+/*   Updated: 2022/07/26 09:48:08 by tamighi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
  #ifndef RESPONSEHANDLER_HPP
@@ -37,14 +37,15 @@ private:
 
 			//	Private functions
 
-	std::string	manage_response(void);
+	std::string	get_response(void);
 	std::string	make_response(std::string file, int error_code, std::string path);
+	void		write_response(void);
 
 	void		get_current_loc(void);
-	void		write_response(void);
-	std::string	exec_cgi(std::string file_path, std::string exec_path);
 	std::string	manage_post_request(std::string &path);
 	void		upload_file(std::string filename, std::string data);
+
+	std::string	exec_cgi(std::string file_path, std::string exec_path);
 
 	//	Error code management
 	int			check_method(void);

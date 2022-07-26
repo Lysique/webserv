@@ -9,7 +9,7 @@
       echo '<h2>Hello ' . getenv('username') . ', here is a beautifull dog !<h/2>';
       ?>
       <img src="Dog.png">
-      <form action="login.php" method="post">
+      <form action="other.php" method="post">
       <input id='submit' type='submit' name='logout' value='logout'>
       <?php
   }
